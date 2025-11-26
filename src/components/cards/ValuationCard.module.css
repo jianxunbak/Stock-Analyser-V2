@@ -1,0 +1,201 @@
+.card {
+    padding: 1.5rem;
+    /* p-6 */
+    background-color: #1f2937;
+    /* bg-gray-800 */
+    border-radius: 0.5rem;
+    /* rounded-lg */
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    /* shadow-lg */
+    color: #ffffff;
+    /* text-white */
+    height: 100%;
+    box-sizing: border-box;
+}
+
+.loading {
+    padding: 1.5rem;
+    background-color: #1f2937;
+    border-radius: 0.5rem;
+    height: 16rem;
+    /* h-64 */
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: .5;
+    }
+}
+
+.metricsContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    text-align: left;
+}
+
+.title {
+    font-size: 1.25rem;
+    /* text-xl */
+    line-height: 1.75rem;
+    font-weight: 700;
+    /* font-bold */
+    margin-bottom: 1rem;
+    /* mb-4 */
+}
+
+.section {
+    background-color: #111827;
+    padding: 0.8rem 1rem;
+    border-radius: 0.5rem;
+}
+
+.label {
+    font-size: 0.875rem;
+    color: #9ca3af;
+    margin-bottom: 0;
+    box-sizing: border-box;
+}
+
+h4 {
+    margin: 0;
+}
+
+.methodValue {
+    font-size: 1.125rem;
+    /* text-lg */
+    font-weight: 600;
+    /* font-semibold */
+    color: #4ade80;
+    /* text-blue-400 */
+    margin: 0;
+}
+
+.valueContainer {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.5rem;
+    /* space-x-2 */
+}
+
+.intrinsicValue {
+    font-size: 1.875rem;
+    /* text-3xl */
+    line-height: 2.25rem;
+    font-weight: 700;
+    /* font-bold */
+    color: #4ade80;
+    /* text-white */
+}
+
+.statusBadge {
+    font-size: 0.875rem;
+    /* text-sm */
+    font-weight: 700;
+    /* font-bold */
+    padding-left: 0.5rem;
+    /* px-2 */
+    padding-right: 0.5rem;
+    padding-top: 0.25rem;
+    /* py-1 */
+    padding-bottom: 0.25rem;
+    border-radius: 0.25rem;
+    /* rounded */
+    margin-top: 1.2rem;
+}
+
+.statusUndervalued {
+    background-color: rgba(34, 197, 94, 0.2);
+    /* bg-green-500/20 */
+    color: #4ade80;
+    /* text-green-400 */
+}
+
+.statusOvervalued {
+    background-color: rgba(239, 68, 68, 0.2);
+    /* bg-red-500/20 */
+    color: #f87171;
+    /* text-red-400 */
+}
+
+.statusFair {
+    background-color: rgba(234, 179, 8, 0.2);
+    /* bg-yellow-500/20 */
+    color: #facc15;
+    /* text-yellow-400 */
+}
+
+.diffText {
+    font-size: 0.875rem;
+    /* text-sm */
+    margin-top: 0.25rem;
+    /* mt-1 */
+}
+
+.priceValue.positive {
+    color: #4ade80;
+    /* text-green-400 */
+}
+
+.priceValue.negative {
+    color: #f87171;
+    /* text-red-400 */
+}
+
+.assumptionsList {
+    list-style-type: disc;
+    padding-left: 1.25rem;
+    color: #d1d5db;
+    font-size: 0.875rem;
+}
+
+.valueRow {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+}
+
+.priceValue {
+    font-size: 1.875rem;
+    /* text-3xl */
+    line-height: 2.25rem;
+    font-weight: 700;
+    /* font-bold */
+    color: #ffffff;
+    /* text-white */
+}
+
+.differenceSection {
+    margin-top: 1rem;
+    padding-top: 0.5rem;
+    display: flex;
+    justify-content: space-between;
+    /* Align bottom */
+}
+
+
+.statusContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+.differenceValue {
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+.undervalued {
+    color: #4ade80;
+}
+
+.overvalued {
+    color: #f87171;
+}

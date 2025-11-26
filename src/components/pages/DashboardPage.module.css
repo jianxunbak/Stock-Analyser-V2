@@ -1,0 +1,178 @@
+.container {
+    min-height: 100vh;
+    max-width: 100%;
+    background-color: #111827;
+    /* bg-gray-900 */
+    color: #ffffff;
+    /* text-white */
+    padding: 2rem;
+    /* p-8 */
+}
+
+.wrapper {
+    max-width: 80rem;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.actionGroup {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    /* Small space between the watchlist button and the search bar */
+}
+
+.header {
+    margin-bottom: 2rem;
+    /* mb-8 */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    /* gap: 1rem; */
+}
+
+.title {
+    font-size: 1.875rem;
+    /* text-3xl */
+    line-height: 2.25rem;
+    font-weight: 700;
+    /* font-bold */
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+    background-image: linear-gradient(to right, #60a5fa, #9333ea);
+    /* from-blue-400 to-purple-600 */
+}
+
+.searchContainer {
+    position: relative;
+    max-width: 200px;
+    /* margin: 0 auto; */
+    display: flex;
+    align-items: center;
+
+}
+
+.searchInput {
+    width: 100%;
+    background-color: #1f2937;
+    border: 1px solid #374151;
+    border-radius: 8px;
+    padding: 0.5rem 2.5rem 0.5rem 1rem;
+    color: #f3f4f6;
+    font-size: 0.9rem;
+    transition: border-color 0.2s;
+    box-sizing: border-box;
+}
+
+.searchInput:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 1px #3b82f6;
+}
+
+.searchInput::placeholder {
+    color: #6b7280;
+    /* placeholder-gray-500 */
+}
+
+.searchIcon {
+    position: absolute;
+    right: 1.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #9ca3af;
+    width: 1rem;
+    height: 1rem;
+    cursor: pointer;
+}
+
+.error {
+    background-color: rgba(239, 68, 68, 0.1);
+    /* bg-red-500/10 */
+    border: 1px solid #ef4444;
+    /* border-red-500 */
+    color: #ef4444;
+    /* text-red-500 */
+    padding: 1rem;
+    border-radius: 0.5rem;
+    margin-bottom: 2rem;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.watchlistButton {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 0.4rem 0.8rem;
+    border-radius: 10px;
+    color: white;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    margin-left: 0;
+}
+
+.watchlistButton:hover {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.1));
+    border-color: #60a5fa;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(96, 165, 250, 0.2);
+}
+
+.starIcon {
+    color: #F59E0B;
+}
+
+@media (min-width: 768px) {
+    .grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 1024px) {
+    .grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+.colSpan3 {
+    grid-column: span 1 / span 1;
+}
+
+@media (min-width: 1024px) {
+    .colSpan3 {
+        grid-column: span 3 / span 3;
+    }
+}
+
+.colSpan2 {
+    grid-column: span 1 / span 1;
+}
+
+@media (min-width: 1024px) {
+    .colSpan2 {
+        grid-column: span 2 / span 2;
+    }
+}
+
+.colSpan1 {
+    grid-column: span 1 / span 1;
+}
+
+
+@media (min-width: 1024px) {
+    .colSpan1 {
+        grid-column: span 1 / span 1;
+    }
+}

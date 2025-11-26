@@ -1,0 +1,176 @@
+.container {
+    height: 100vh;
+    max-width: 100%;
+    background-color: #111827;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    position: relative;
+    overflow: hidden;
+    /* padding: 20px */
+}
+
+.header {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    padding: 1.5rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 20;
+    box-sizing: border-box;
+}
+
+.headerTitle {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: white;
+    margin: 0;
+    background: linear-gradient(to right, #60a5fa, #9333ea);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.watchlistButton {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 0.4rem 0.8rem;
+    border-radius: 10px;
+    color: white;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.watchlistButton:hover {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.1));
+    border-color: #60a5fa;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(96, 165, 250, 0.2);
+}
+
+.starIcon {
+    color: #F59E0B;
+}
+
+/* Background effects */
+.backgroundGradient {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at 50% 50%, rgba(59, 130, 246, 0.15) 0%, rgba(17, 24, 39, 0) 50%);
+    pointer-events: none;
+    z-index: 0;
+}
+
+.content {
+    z-index: 10;
+    text-align: center;
+    max-width: 40rem;
+    width: 90%;
+    padding: 2rem;
+}
+
+.title {
+    font-size: 4rem;
+    font-weight: 800;
+    margin-bottom: 1.5rem;
+    line-height: 1.1;
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+    background-image: linear-gradient(to right, #60a5fa, #9333ea);
+    animation: fadeInDown 0.8s ease-out;
+}
+
+.subtitle {
+    font-size: 1.25rem;
+    color: #9ca3af;
+    margin-bottom: 3rem;
+    animation: fadeInUp 0.8s ease-out 0.2s backwards;
+}
+
+.searchWrapper {
+    position: relative;
+    /* width: 100%; */
+    max-width: 32rem;
+    margin: 0 auto;
+    animation: fadeInUp 0.8s ease-out 0.4s backwards;
+    display: flex;
+    align-items: center;
+}
+
+.searchInput {
+    width: 100%;
+    padding: 1rem 1rem;
+    font-size: 1rem;
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 9999px;
+    color: white;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+}
+
+.searchInput:focus {
+    outline: none;
+    background-color: rgba(255, 255, 255, 0.15);
+    border-color: #60a5fa;
+    box-shadow: 0 0 0 4px rgba(96, 165, 250, 0.2);
+}
+
+.searchInput::placeholder {
+    color: #9ca3af;
+}
+
+.searchIcon {
+    position: absolute;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #9ca3af;
+    cursor: pointer;
+    transition: color 0.2s;
+    width: 1rem;
+}
+
+.searchIcon:hover {
+    color: white;
+}
+
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

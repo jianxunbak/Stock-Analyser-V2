@@ -1,0 +1,124 @@
+.card {
+    padding: 1.5rem;
+    background-color: #1f2937;
+    border-radius: 0.5rem;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    color: #ffffff;
+    height: 100%;
+    box-sizing: border-box;
+}
+
+.loading {
+    padding: 1.5rem;
+    background-color: #1f2937;
+    border-radius: 0.5rem;
+    height: 16rem;
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: .5;
+    }
+}
+
+.title {
+    font-size: 1.25rem;
+    line-height: 1.75rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+}
+
+.noDataText {
+    color: #9ca3af;
+}
+
+.listContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.supportRow {
+    background-color: #111827;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.rowHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.price {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-weight: 700;
+    font-size: 1.125rem;
+}
+
+.reasonText {
+    color: #d1d5db;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+}
+
+.strongLabel {
+    margin-left: 0.5rem;
+    font-size: 0.75rem;
+    color: #facc15;
+    font-weight: 700;
+}
+
+.textGreen {
+    color: #4ade80;
+}
+
+.textRed {
+    color: #f87171;
+}
+
+.actionWrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+.actionBadge {
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.actionBuy {
+    background-color: rgba(34, 197, 94, 0.2);
+    color: #4ade80;
+}
+
+.actionHold {
+    background-color: rgba(239, 68, 68, 0.2);
+    color: #f87171;
+}
+
+.actionSell {
+    background-color: rgba(239, 68, 68, 0.2);
+    color: #f87171;
+}
+
+.actionNote {
+    display: block;
+    font-size: 0.7rem;
+    color: #f87171;
+    margin-top: 0.25rem;
+}
