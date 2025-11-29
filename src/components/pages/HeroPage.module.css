@@ -205,7 +205,6 @@
     z-index: 1;
     backdrop-filter: blur(1px) saturate(150%) brightness(1);
     -webkit-backdrop-filter: blur(1px) saturate(150%) brightness(1);
-
 }
 
 @media (min-width: 768px) {

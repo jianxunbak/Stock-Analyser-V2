@@ -1,16 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { X, Trash2, ExternalLink } from 'lucide-react';
+import { X, Trash2, ExternalLink, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import styles from './WatchlistModal.module.css';
+import { fetchStockData } from '../../services/api';
+import { useWatchlist } from '../../hooks/useWatchlist';
 
 const WatchlistModal = ({ isOpen, onClose }) => {
-    const [watchlist, setWatchlist] = useState([]);
+    const { watchlist, removeFromWatchlist, updateWatchlistItem, setFullWatchlist } = useWatchlist();
+    const [isRefreshing, setIsRefreshing] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
-        if (isOpen) {
-            const savedWatchlist = JSON.parse(localStorage.getItem('watchlist') || '[]');
-            setWatchlist(savedWatchlist);
+        if (isOpen && watchlist.length > 0) {
+            refreshWatchlist(watchlist);
         }
 
         const handleKeyDown = (e) => {
@@ -26,13 +28,59 @@ const WatchlistModal = ({ isOpen, onClose }) => {
         return () => {
             window.removeEventListener('keydown', handleKeyDown);
         };
-    }, [isOpen, onClose]);
+    }, [isOpen, onClose]); // Removed watchlist dependency to prevent infinite loop if refresh updates it
 
-    const removeFromWatchlist = (ticker) => {
-        const updated = watchlist.filter(item => item.ticker !== ticker);
-        setWatchlist(updated);
-        localStorage.setItem('watchlist', JSON.stringify(updated));
-        window.dispatchEvent(new Event('watchlist-updated'));
+    const refreshWatchlist = async (currentList) => {
+        if (!currentList || currentList.length === 0) return;
+        setIsRefreshing(true);
+
+        try {
+            const updatedList = await Promise.all(currentList.map(async (item) => {
+                try {
+                    const data = await fetchStockData(item.ticker);
+                    // Extract updated fields
+                    const currentPrice = data.overview?.price || item.price;
+                    const currency = data.overview?.currency || item.currency || 'USD';
+                    const intrinsicValue = data.valuation?.intrinsicValue || item.intrinsicValue;
+
+                    // Support/Signal Logic
+                    let supportLevel = item.supportLevel;
+                    let signal = item.signal;
+                    if (data.support_resistance?.levels?.length > 0) {
+                        const level = data.support_resistance.levels[0];
+                        supportLevel = level.price;
+                        if (currentPrice <= level.price) signal = "Buy";
+                        else if (currentPrice >= level.price * 1.5) signal = "Sell";
+                        else signal = "Hold";
+                    }
+
+                    return {
+                        ...item,
+                        price: currentPrice,
+                        currency: currency,
+                        intrinsicValue: intrinsicValue,
+                        supportLevel: supportLevel,
+                        signal: signal,
+                        // Preserve existing notes
+                        notes: item.notes || '',
+                        lastUpdated: new Date().toISOString()
+                    };
+                } catch (e) {
+                    console.error(`Failed to refresh ${item.ticker}`, e);
+                    return item;
+                }
+            }));
+
+            setFullWatchlist(updatedList);
+        } catch (error) {
+            console.error("Error refreshing watchlist:", error);
+        } finally {
+            setIsRefreshing(false);
+        }
+    };
+
+    const handleNoteChange = (ticker, newNote) => {
+        updateWatchlistItem(ticker, { notes: newNote });
     };
 
     const handleNavigate = (ticker) => {
@@ -46,7 +94,10 @@ const WatchlistModal = ({ isOpen, onClose }) => {
         <div className={styles.overlay} onClick={onClose}>
             <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
                 <div className={styles.header}>
-                    <h2 className={styles.title}>My Watchlist</h2>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                        <h2 className={styles.title}>My Watchlist</h2>
+                        {isRefreshing && <RefreshCw size={16} className={styles.spin} />}
+                    </div>
                     <button onClick={onClose} className={styles.closeButton}>
                         <X size={24} />
                     </button>
@@ -61,10 +112,13 @@ const WatchlistModal = ({ isOpen, onClose }) => {
                             <div className={styles.headerRow}>
                                 <span>Ticker</span>
                                 <span>Health</span>
+                                <span>Ccy</span>
                                 <span>Price</span>
                                 <span>Signal</span>
-                                <span>Intrinsic Val</span>
+                                <span>Intrinsic</span>
                                 <span>Support</span>
+                                <span>Notes</span>
+                                <span>Updated</span>
                                 <span className={styles.actionsHeader}>Actions</span>
                             </div>
 
@@ -90,8 +144,12 @@ const WatchlistModal = ({ isOpen, onClose }) => {
                                         </div>
                                     </div>
 
+                                    <div className={styles.currencyCol}>
+                                        {item.currency || 'USD'}
+                                    </div>
+
                                     <div className={styles.priceCol}>
-                                        ${item.price?.toFixed(2)}
+                                        {item.price?.toFixed(2)}
                                     </div>
 
                                     <div className={styles.signalCol}>
@@ -104,11 +162,25 @@ const WatchlistModal = ({ isOpen, onClose }) => {
                                     </div>
 
                                     <div className={styles.valCol}>
-                                        ${item.intrinsicValue ? item.intrinsicValue.toFixed(2) : 'N/A'}
+                                        {item.intrinsicValue ? item.intrinsicValue.toFixed(2) : 'N/A'}
                                     </div>
 
                                     <div className={styles.valCol}>
-                                        {item.supportLevel ? `$${item.supportLevel.toFixed(2)}` : 'N/A'}
+                                        {item.supportLevel ? `${item.supportLevel.toFixed(2)}` : 'N/A'}
+                                    </div>
+
+                                    <div className={styles.notesCol}>
+                                        <input
+                                            type="text"
+                                            className={styles.notesInput}
+                                            value={item.notes || ''}
+                                            onChange={(e) => handleNoteChange(item.ticker, e.target.value)}
+                                            placeholder="Add note..."
+                                        />
+                                    </div>
+
+                                    <div className={styles.updatedCol}>
+                                        {item.lastUpdated ? new Date(item.lastUpdated).toLocaleDateString() : '-'}
                                     </div>
 
                                     <div className={styles.actionsCol}>

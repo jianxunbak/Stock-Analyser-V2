@@ -7,15 +7,21 @@ import styles from './OverviewCard.module.css';
 import { ChevronDown, Star } from 'lucide-react';
 import { fetchChartData } from '../../services/api';
 import { useTheme } from '../../context/ThemeContext';
+import { useWatchlist } from '../../hooks/useWatchlist';
 
 const OverviewCard = ({ moatStatusLabel, isMoatEvaluating }) => {
     const { stockData, loading } = useStockData();
     const { theme } = useTheme();
+    const { watchlist, addToWatchlist, removeFromWatchlist } = useWatchlist();
     const [timeframe, setTimeframe] = useState('1Y');
     const [showDetails, setShowDetails] = useState(false);
     const [chartData, setChartData] = useState([]);
     const [chartLoading, setChartLoading] = useState(false);
-    const [isInWatchlist, setIsInWatchlist] = useState(false);
+
+    const isInWatchlist = useMemo(() => {
+        if (!stockData?.overview?.symbol) return false;
+        return watchlist.some(item => item.ticker === stockData.overview.symbol);
+    }, [watchlist, stockData?.overview?.symbol]);
 
     // Define chart colors based on theme
     const chartColors = useMemo(() => {
@@ -28,22 +34,6 @@ const OverviewCard = ({ moatStatusLabel, isMoatEvaluating }) => {
             tooltipBorder: isDark ? "none" : "1px solid #e5e7eb"
         };
     }, [theme]);
-
-    // Check watchlist status on mount/update
-    useEffect(() => {
-        const checkWatchlist = () => {
-            if (stockData?.overview?.symbol) {
-                const watchlist = JSON.parse(localStorage.getItem('watchlist') || '[]');
-                setIsInWatchlist(watchlist.some(item => item.ticker === stockData.overview.symbol));
-            }
-        };
-
-        checkWatchlist();
-        window.addEventListener('watchlist-updated', checkWatchlist);
-        return () => window.removeEventListener('watchlist-updated', checkWatchlist);
-    }, [stockData?.overview?.symbol]);
-
-
 
     // Fetch chart data when timeframe changes
     useEffect(() => {
@@ -247,15 +237,10 @@ const OverviewCard = ({ moatStatusLabel, isMoatEvaluating }) => {
     const toggleWatchlist = () => {
         if (!stockData?.overview?.symbol) return;
 
-        const watchlist = JSON.parse(localStorage.getItem('watchlist') || '[]');
         const symbol = stockData.overview.symbol;
 
         if (isInWatchlist) {
-            // Remove
-            const updated = watchlist.filter(item => item.ticker !== symbol);
-            localStorage.setItem('watchlist', JSON.stringify(updated));
-            setIsInWatchlist(false);
-            window.dispatchEvent(new Event('watchlist-updated'));
+            removeFromWatchlist(symbol);
         } else {
             // Add
             // Extract Data
@@ -284,11 +269,10 @@ const OverviewCard = ({ moatStatusLabel, isMoatEvaluating }) => {
                 score: percentageScore,
                 intrinsicValue: intrinsicValue,
                 supportLevel: supportLevel,
-                signal: signal
+                signal: signal,
+                lastUpdated: new Date().toISOString()
             };
-            localStorage.setItem('watchlist', JSON.stringify([...watchlist, newItem]));
-            setIsInWatchlist(true);
-            window.dispatchEvent(new Event('watchlist-updated'));
+            addToWatchlist(newItem);
         }
     };
 

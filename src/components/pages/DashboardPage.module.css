@@ -9,7 +9,7 @@
     background-size: 40px 40px;
     background-attachment: fixed;
     color: var(--text-primary);
-    padding: 0 1rem 1rem 1rem;
+    padding: 0 1rem 6rem 1rem;
     /* overflow-x: hidden; - Removed to allow position: sticky to work */
     /* Prevent horizontal scroll */
 }
@@ -22,7 +22,7 @@
 
 @media (min-width: 768px) {
     .container {
-        padding: 0 2rem 2rem 2rem;
+        padding: 0 2rem 6rem 2rem;
     }
 }
 
