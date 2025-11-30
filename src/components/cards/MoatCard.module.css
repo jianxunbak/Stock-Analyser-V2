@@ -14,9 +14,10 @@
     background: rgba(255, 255, 255, 0.05);
     border-radius: 30px;
     box-shadow:
-        0 15px 35px rgba(0, 0, 0, 0.5),
-        inset 5px 3.5px 5px rgba(255, 255, 255, 0.2),
-        inset -2px -2px 5px rgba(0, 0, 0, 0.5);
+        0 6px 12px rgba(96, 165, 250, 0.3),
+        inset 0 2px 4px rgba(96, 165, 250, 0.5),
+        inset 0 2px 4px rgba(96, 165, 250, 0.5);
+
     z-index: 1;
     backdrop-filter: blur(1px) saturate(150%) brightness(1);
     -webkit-backdrop-filter: blur(1px) saturate(150%) brightness(1);
@@ -43,6 +44,14 @@
     backdrop-filter: blur(1px) saturate(200%) brightness(1);
     -webkit-backdrop-filter: blur(1px) saturate(200%) brightness(1);
     z-index: 1;
+}
+
+.card:hover {
+    outline: none;
+    background: transparent;
+    transform: translateY(-10px);
+    transform: scale(1.01);
+    border-radius: 60px;
 }
 
 
@@ -200,12 +209,16 @@
 .buttonLowActive:hover {
     outline: none;
     border: 1px solid transparent;
+    transform: translateY(-10px);
+    transform: scaleY(1.2);
+    border-radius: 10px;
 }
 
 .buttonHighInactive,
 .buttonMedInactive,
 .buttonLowInactive {
     border: 1px solid rgba(255, 255, 255, 0.08);
+
 }
 
 [data-theme="light"] .buttonHighInactive,
@@ -230,6 +243,9 @@
     box-shadow:
         0 6px 12px #16a34a4b,
         inset 0 2px 4px #16a34a;
+    transform: translateY(-10px);
+    transform: scaleY(1.2);
+    border-radius: 10px;
 }
 
 
@@ -248,6 +264,9 @@
     box-shadow:
         0 6px 12px #ca8b0437,
         inset 0 2px 4px #ca8a04;
+    transform: translateY(-10px);
+    transform: scaleY(1.2);
+    border-radius: 10px;
 }
 
 .buttonLowActive {
@@ -265,6 +284,9 @@
     box-shadow:
         0 6px 12px #dc262627,
         inset 0 2px 4px #dc2626;
+    transform: translateY(-10px);
+    transform: scaleY(1.2);
+    border-radius: 10px;
 }
 
 /* Bottom Zone: Chart */
@@ -433,7 +455,7 @@
     color: white;
     border: none;
     padding: 0.35rem 0.75rem;
-    border-radius: 0.5rem;
+    border-radius: 1rem;
     font-size: 0.75rem;
     font-weight: 500;
     cursor: pointer;
@@ -448,6 +470,9 @@
     opacity: 0.9;
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(168, 85, 247, 0.3);
+    transform: translateY(-10px);
+    transform: scaleY(1.1);
+    border-radius: 10px;
 }
 
 .aiButton:disabled {

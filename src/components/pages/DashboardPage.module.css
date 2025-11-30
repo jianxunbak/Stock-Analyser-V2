@@ -129,12 +129,6 @@
     padding: 0;
 }
 
-
-[data-theme="light"] .backButton:hover {
-    background: #f3f4f6;
-    border-color: #3b82f6;
-}
-
 .searchContainer {
     position: relative;
     display: flex;
@@ -170,9 +164,9 @@
     background: rgba(255, 255, 255, 0.05);
     border-radius: 30px;
     box-shadow:
-        0 5px 10px rgba(0, 0, 0, 0.2),
-        inset 5px 3.5px 5px rgba(255, 255, 255, 0.2),
-        inset -2px -2px 5px rgba(0, 0, 0, 0.2);
+        0 6px 12px rgba(96, 165, 250, 0.3),
+        inset 0 2px 4px rgba(96, 165, 250, 0.5),
+        inset 0 2px 4px rgba(96, 165, 250, 0.5);
     z-index: 1;
     backdrop-filter: blur(1px) saturate(150%) brightness(1);
     -webkit-backdrop-filter: blur(1px) saturate(150%) brightness(1);
@@ -281,16 +275,21 @@
 
 .searchInput:focus {
     outline: none;
-    border: 1px solid rgb(73, 71, 194);
     transform: translateY(-2px);
     box-shadow:
         0 6px 12px rgba(96, 165, 250, 0.5),
         inset 0 2px 4px rgba(96, 165, 250, 0.5);
+    transform: translateX(-10px);
+    transform: scaleY(1.1);
+    border-radius: 15px;
 }
 
 [data-theme="light"] .searchInput:focus {
-    border-color: #3b82f6;
+    /* border-color: #3b82f6; */
     background-color: #ffffff;
+    transform: translateX(-10px);
+    transform: scaleY(1.1);
+    border-radius: 15px;
 }
 
 .searchInput::placeholder {
@@ -355,9 +354,9 @@
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 30px;
     box-shadow:
-        0 5px 10px rgba(0, 0, 0, 0.2),
-        inset 5px 3.5px 5px rgba(255, 255, 255, 0.2),
-        inset -2px -2px 5px rgba(0, 0, 0, 0.2);
+        0 6px 12px rgba(96, 165, 250, 0.3),
+        inset 0 2px 4px rgba(96, 165, 250, 0.5),
+        inset 0 2px 4px rgba(96, 165, 250, 0.5);
     z-index: 1;
     backdrop-filter: blur(1px) saturate(150%) brightness(1);
     -webkit-backdrop-filter: blur(1px) saturate(150%) brightness(1);
@@ -373,16 +372,22 @@
 
 .watchlistButton:hover {
     background: transparent;
-    border: 1px solid rgb(73, 71, 194);
+    border: none;
     transform: translateY(-2px);
     box-shadow:
         0 6px 12px rgba(96, 165, 250, 0.5),
         inset 0 2px 4px rgba(96, 165, 250, 0.5);
+    transform: translateY(-10px);
+    transform: scale(1.1);
+    border-radius: 20px;
 }
 
 [data-theme="light"] .watchlistButton:hover {
     background: #f3f4f6;
-    border-color: #3b82f6;
+    /* border-color: #3b82f6; */
+    transform: translateY(-10px);
+    transform: scale(1.1);
+    border-radius: 20px;
 }
 
 .watchlistButton:focus {
@@ -428,11 +433,14 @@
 
 .logoutButton:hover {
     background: transparent;
-    border: 1px solid rgb(73, 71, 194);
     transform: translateY(-2px);
     box-shadow:
         0 6px 12px rgba(96, 165, 250, 0.5),
         inset 0 2px 4px rgba(96, 165, 250, 0.5);
+    transform: translateY(-10px);
+    transform: scale(1.1);
+    border-radius: 20px;
+
 }
 
 [data-theme="light"] .logoutButton:hover {
@@ -459,11 +467,17 @@
 
 .userButton:hover {
     background: transparent;
-    border: 1px solid rgb(73, 71, 194);
     transform: translateY(-2px);
     box-shadow:
         0 6px 12px rgba(96, 165, 250, 0.5),
         inset 0 2px 4px rgba(96, 165, 250, 0.5);
+    transform: translateY(-10px);
+    transform: scale(1.1);
+    border-radius: 20px;
+}
+
+.userButton:focus {
+    outline: none;
 }
 
 .userAvatarSmall {
@@ -472,6 +486,16 @@
     border-radius: 50%;
     object-fit: cover;
     border: 2px solid var(--glass-border);
+}
+
+.userAvatarSmall:hover {
+    transform: translateY(-2px);
+    box-shadow:
+        0 6px 12px rgba(96, 165, 250, 0.5),
+        inset 0 2px 4px rgba(96, 165, 250, 0.5);
+    transform: translateY(-10px);
+    transform: scale(1.1);
+    border-radius: 20px;
 }
 
 
@@ -488,6 +512,17 @@
     font-size: 1rem;
     border: 2px solid var(--glass-border);
 }
+
+.userAvatarPlaceholder:hover {
+    transform: translateY(-2px);
+    box-shadow:
+        0 6px 12px rgba(96, 165, 250, 0.5),
+        inset 0 2px 4px rgba(96, 165, 250, 0.5);
+    transform: translateY(-10px);
+    transform: scale(1.1);
+    border-radius: 20px;
+}
+
 
 .starIcon {
     color: #F59E0B;
@@ -512,9 +547,9 @@
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 30px;
     box-shadow:
-        0 5px 10px rgba(0, 0, 0, 0.2),
-        inset 5px 3.5px 5px rgba(255, 255, 255, 0.2),
-        inset -2px -2px 5px rgba(0, 0, 0, 0.2);
+        0 6px 12px rgba(96, 165, 250, 0.3),
+        inset 0 2px 4px rgba(96, 165, 250, 0.5),
+        inset 0 2px 4px rgba(96, 165, 250, 0.5);
     z-index: 1;
     backdrop-filter: blur(1px) saturate(150%) brightness(1);
     -webkit-backdrop-filter: blur(1px) saturate(150%) brightness(1);
@@ -523,16 +558,30 @@
 
 .backButton:hover {
     background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.1));
-    border: 1px solid rgb(73, 71, 194);
+    /* border: 1px solid rgb(73, 71, 194); */
     transform: translateY(-2px);
     box-shadow:
         0 6px 12px rgba(96, 165, 250, 0.5),
         inset 0 2px 4px rgba(96, 165, 250, 0.5);
+    transform: translateY(-10px);
+    transform: scale(1.1);
+    border-radius: 15px;
+}
+
+[datatheme='light'] .backButton {
+    box-shadow:
+        0 6px 12px rgba(0, 0, 0, 0.3),
+        inset 0 2px 4px rgba(0, 0, 0, 0.5),
+        inset 0 2px 4px rgba(0, 0, 0, 0.5);
 }
 
 [data-theme="light"] .backButton:hover {
     background: #f3f4f6;
-    border-color: #3b82f6;
+    /* border-color: #3b82f6; */
+    transform: translateY(-10px);
+    transform: scale(1.1);
+    border-radius: 15px;
+
 }
 
 @media (min-width: 768px) {
