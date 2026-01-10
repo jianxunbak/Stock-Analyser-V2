@@ -1041,6 +1041,20 @@ def get_stock_data(ticker: str):
         q_cashflow = get_res("q_cashflow", pd.DataFrame())
         
         calendar_data = get_res("calendar", {})
+        
+        # Sanitize Calendar Data (Convert dates to strings for JSON/Firestore)
+        if isinstance(calendar_data, dict):
+            new_cal = {}
+            for k, v in calendar_data.items():
+                # Check for date/datetime objects (safe check using string type conversion or attribute)
+                if hasattr(v, 'isoformat'):
+                    new_cal[k] = v.isoformat()
+                elif isinstance(v, list):
+                    new_cal[k] = [x.isoformat() if hasattr(x, 'isoformat') else x for x in v]
+                else:
+                    new_cal[k] = v
+            calendar_data = new_cal
+
         news_data = get_res("news", [])
             
         # Growth Estimates Logic
