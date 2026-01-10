@@ -78,21 +78,24 @@ const HeroPage = () => {
         if (currentUser && portfolio.length > 0) {
             const uniqueTickers = [...new Set(portfolio.map(p => p.ticker))];
 
-            // Wait 1s after load, then start fetching sequentially
+            // Wait 5s (increased from 1s) after load to allow user to search comfortably first
             const timer = setTimeout(() => {
+                // If user has navigated away or started searching, we might want to skip, 
+                // but since this is inside a timeout, we check if component is still mounted implicitly by cleanup.
+
                 console.log("HeroPage: Starting background prefetch for portfolio...");
 
                 uniqueTickers.forEach((ticker, index) => {
-                    // Stagger requests every 200ms to avoid clogging network
+                    // Stagger requests every 500ms (slower) to avoid clogging network
                     setTimeout(() => {
                         fetchStockData(ticker).then(() => {
                             console.log(`HeroPage: Prefetched ${ticker}`);
                         }).catch(() => {
                             // Ignore errors in prefetch
                         });
-                    }, index * 200);
+                    }, index * 500);
                 });
-            }, 1000);
+            }, 5000);
 
             return () => clearTimeout(timer);
         }
