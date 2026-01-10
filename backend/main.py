@@ -14,6 +14,7 @@ import time
 from datetime import datetime, timedelta, timezone
 import firebase_admin
 from firebase_admin import credentials, firestore
+import concurrent.futures
 
 # Load .env from the project root (one level up from backend/)
 env_path = pathlib.Path(__file__).parent.parent / '.env'
@@ -981,119 +982,129 @@ def get_stock_data(ticker: str):
         # Update overview with final beta value
         overview["beta"] = beta_val
 
-        # Financials for Growth & Profitability (Annual data)
-        # For ETFs, skip these as they don't exist and yfinance hangs trying to fetch them.
+        # Parallel Fetching of Fundamentals
         f_start = time.time()
+        
         financials = pd.DataFrame()
         balance_sheet = pd.DataFrame()
         cashflow = pd.DataFrame()
+        history = pd.DataFrame()
+        q_financials = pd.DataFrame()
+        q_balance = pd.DataFrame()
+        q_cashflow = pd.DataFrame()
         
-        if quote_type != "ETF":
+        # Define tasks
+        def fetch_prop(obj, name):
             try:
-                financials = stock.financials if hasattr(stock, 'financials') else pd.DataFrame()
-                balance_sheet = stock.balance_sheet if hasattr(stock, 'balance_sheet') else pd.DataFrame()
-                cashflow = stock.cashflow if hasattr(stock, 'cashflow') else pd.DataFrame()
+                if hasattr(obj, name):
+                    return getattr(obj, name)
             except Exception:
                 pass
-        print(f"DEBUG: Financials processed in {time.time() - f_start:.2f}s")
+            return None
+
+        def fetch_method(obj, name, **kwargs):
+            try:
+                if hasattr(obj, name):
+                    return getattr(obj, name)(**kwargs)
+            except Exception:
+                pass
+            return None
+            
+        future_results = {}
         
-        # Fetch TTM (Trailing Twelve Months) data for ratio calculations
-        ttm_start = time.time()
+        if quote_type != "ETF":
+            with concurrent.futures.ThreadPoolExecutor(max_workers=12) as executor:
+                future_results = {
+                    "financials": executor.submit(fetch_prop, stock, 'financials'),
+                    "balance_sheet": executor.submit(fetch_prop, stock, 'balance_sheet'),
+                    "cashflow": executor.submit(fetch_prop, stock, 'cashflow'),
+                    "q_financials": executor.submit(fetch_prop, stock, 'quarterly_financials'),
+                    "q_balance_sheet": executor.submit(fetch_prop, stock, 'quarterly_balance_sheet'),
+                    "q_cashflow": executor.submit(fetch_prop, stock, 'quarterly_cashflow'),
+                    "calendar": executor.submit(fetch_prop, stock, 'calendar'),
+                    "news": executor.submit(fetch_prop, stock, 'news'),
+                    "revenue_estimate": executor.submit(fetch_prop, stock, 'revenue_estimate'),
+                    "growth_est_method": executor.submit(fetch_method, stock, 'get_growth_estimates'),
+                    "growth_est_prop": executor.submit(fetch_prop, stock, 'growth_estimates'),
+                    "raw_growth": executor.submit(fetch_method, stock, 'get_growth_estimates', as_dict=False),
+                    "history": executor.submit(fetch_method, stock, 'history', period="25y"),
+                }
+                
+                # Wait for all to complete
+                concurrent.futures.wait(future_results.values(), timeout=30)
+
+            # Retrieve Results
+            def get_res(key, default):
+                if key not in future_results: return default
+                try:
+                    res = future_results[key].result()
+                    return res if res is not None else default
+                except Exception:
+                    return default
+
+            financials = get_res("financials", pd.DataFrame())
+            balance_sheet = get_res("balance_sheet", pd.DataFrame())
+            cashflow = get_res("cashflow", pd.DataFrame())
+            history = get_res("history", pd.DataFrame())
+            
+            q_financials = get_res("q_financials", pd.DataFrame())
+            q_balance = get_res("q_balance_sheet", pd.DataFrame())
+            q_cashflow = get_res("q_cashflow", pd.DataFrame())
+            
+            calendar_data = get_res("calendar", {})
+            news_data = get_res("news", [])
+            
+            # Growth Estimates Logic
+            ge = get_res("growth_est_method", None)
+            if ge is None: ge = get_res("growth_est_prop", None)
+            
+            if ge is not None and not ge.empty:
+                ge = ge.reset_index()
+                if 'index' in ge.columns: ge = ge.rename(columns={'index': 'period'})
+                elif 'Growth Estimates' in ge.columns: ge = ge.rename(columns={'Growth Estimates': 'period'})
+                else:
+                    for col in ge.columns:
+                        if 'period' in col.lower():
+                            ge = ge.rename(columns={col: 'period'})
+                            break
+                growth_estimates_data = ge.to_dict(orient='records')
+
+            # Raw Growth
+            raw_ge = get_res("raw_growth", None)
+            if raw_ge is not None and not raw_ge.empty:
+                try:
+                    raw_ge.index.name = 'period'
+                    raw_growth_estimates_data = raw_ge.reset_index().to_dict(orient='records')
+                except:
+                    pass
+            
+            # Revenue
+            re = get_res("revenue_estimate", None)
+            if re is not None and not re.empty:
+                try:
+                    re.index.name = 'period'
+                    revenue_estimates_data = re.reset_index().to_dict(orient='records')
+                except:
+                    pass
+
+        print(f"DEBUG: Parallel fundamentals processed in {time.time() - f_start:.2f}s")
+        
+        # TTM Calculation (using fetched Q data)
         ttm_income = pd.Series()
         ttm_cashflow = pd.Series()
         ttm_balance = pd.Series()
-
-        if quote_type != "ETF":
-            try:
-                financials_ttm = stock.quarterly_financials
-                balance_sheet_ttm = stock.quarterly_balance_sheet
-                cashflow_ttm = stock.quarterly_cashflow
-                
-                # Sum last 4 quarters for TTM income statement and cash flow
-                if not financials_ttm.empty and len(financials_ttm.columns) >= 4:
-                    ttm_income = financials_ttm.iloc[:, :4].sum(axis=1)
-                
-                if not cashflow_ttm.empty and len(cashflow_ttm.columns) >= 4:
-                    ttm_cashflow = cashflow_ttm.iloc[:, :4].sum(axis=1)
-                
-                # Use most recent quarter for TTM balance sheet (point in time data)
-                if not balance_sheet_ttm.empty:
-                    ttm_balance = balance_sheet_ttm.iloc[:, 0]
-            except Exception as e:
-                print(f"Error fetching TTM data: {e}")
-        print(f"DEBUG: TTM data processed in {time.time() - ttm_start:.2f}s")
         
-
-        if quote_type != "ETF":
-            try:
-                # 1. Calendar
-                cal_start = time.time()
-                try:
-                    calendar_data = stock.calendar
-                except Exception as e:
-                    print(f"Error fetching calendar: {e}")
-                print(f"DEBUG: Calendar fetched in {time.time() - cal_start:.2f}s")
-                
-                # 2. News
-                news_start = time.time()
-                try:
-                    news_data = stock.news
-                except Exception as e:
-                    print(f"Error fetching news: {e}")
-                print(f"DEBUG: News fetched in {time.time() - news_start:.2f}s")
-
-                # 3. Standard Growth Estimates (for calculation)
-                est_start = time.time()
-                try:
-                    ge = None
-                    if hasattr(stock, 'get_growth_estimates'):
-                        ge = stock.get_growth_estimates()
-                    elif hasattr(stock, 'growth_estimates'):
-                        ge = stock.growth_estimates
-                    
-                    if ge is not None and not ge.empty:
-                        ge = ge.reset_index()
-                        if 'index' in ge.columns:
-                            ge = ge.rename(columns={'index': 'period'})
-                        elif 'Growth Estimates' in ge.columns:
-                            ge = ge.rename(columns={'Growth Estimates': 'period'})
-                        else:
-                            # Try to find any column that might be the period
-                            for col in ge.columns:
-                                if 'period' in col.lower():
-                                    ge = ge.rename(columns={col: 'period'})
-                                    break
-                        growth_estimates_data = ge.to_dict(orient='records')
-                    print(f"DEBUG: Standard Growth Est fetched in {time.time() - est_start:.2f}s")
-                except Exception as e:
-                    print(f"Error fetching standard growth estimates: {e}")
-
-                # 4. Raw Growth Estimates (user detail)
-                raw_est_start = time.time()
-                try:
-                    raw_growth_estimates = stock.get_growth_estimates(as_dict=False)
-                    if raw_growth_estimates is not None and not raw_growth_estimates.empty:
-                        raw_growth_estimates.index.name = 'period'
-                        raw_growth_estimates_data = raw_growth_estimates.reset_index().to_dict(orient='records')
-                    print(f"DEBUG: Raw Growth Est fetched in {time.time() - raw_est_start:.2f}s")
-                except Exception:
-                    pass
-
-                # 5. Revenue Estimates
-                rev_start = time.time()
-                try:
-                    re = stock.revenue_estimate
-                    if re is not None and not re.empty:
-                        re.index.name = 'period'
-                        revenue_estimates_data = re.reset_index().to_dict(orient='records')
-                    print(f"DEBUG: Revenue Est fetched in {time.time() - rev_start:.2f}s")
-                except Exception:
-                    pass
-                
-            except Exception as e:
-                print(f"Error fetching fundamentals: {e}")
-        
-        print(f"DEBUG: Total fundamentals processed in {time.time() - fund_start:.2f}s")
+        try:
+            if not q_financials.empty and len(q_financials.columns) >= 4:
+                ttm_income = q_financials.iloc[:, :4].sum(axis=1)
+            
+            if not q_cashflow.empty and len(q_cashflow.columns) >= 4:
+                ttm_cashflow = q_cashflow.iloc[:, :4].sum(axis=1)
+            
+            if not q_balance.empty:
+                ttm_balance = q_balance.iloc[:, 0]
+        except Exception as e:
+            print(f"Error calculating TTM data: {e}")
 
         print("\n--- YFINANCE DATA DEBUG ---")
         print("INFO KEYS:", info.keys())
@@ -1196,9 +1207,10 @@ def get_stock_data(ticker: str):
         debt_to_ebitda = (total_debt / ebitda) if ebitda else 0
 
         # Historical Data for Charts
-        h_start = time.time()
-        history = stock.history(period="25y")  # Changed from "max" to speed up validation
-        print(f"DEBUG: History (25y) fetched in {time.time() - h_start:.2f}s")
+        # history fetched in parallel block
+        # h_start = time.time()
+        # history = stock.history(period="25y")  # DONE ABOVE
+        # print(f"DEBUG: History (25y) fetched in {time.time() - h_start:.2f}s")
         history_data = [{"date": date.strftime("%Y-%m-%d"), "close": close} for date, close in zip(history.index, history["Close"])]
 
         # Helper to get series safely
