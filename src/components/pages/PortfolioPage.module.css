@@ -796,6 +796,7 @@
     gap: 0.5rem;
 }
 
+
 .iconBtn {
     background: none;
     border: none;
@@ -804,11 +805,32 @@
     color: var(--text-secondary);
     transition: all 0.2s;
     border-radius: 50%;
+    display: flex;
+    /* Ensure centering */
+    align-items: center;
+    justify-content: center;
 }
 
 .iconBtn:hover {
     background: rgba(255, 255, 255, 0.1);
     color: var(--text-primary);
+    transform: scale(1.1);
+    /* Slight pop */
+}
+
+/* Specific hover for the delete button (usually has Trash icon inside) */
+.iconBtn:has(svg[color="#EF4444"]):hover,
+.iconBtn:has(svg[stroke="#EF4444"]):hover {
+    background: rgba(239, 68, 68, 0.2);
+    /* Red tint */
+    color: #EF4444;
+}
+
+/* Specific hover for check/success button */
+.iconBtn:has(svg[color="#10B981"]):hover {
+    background: rgba(16, 185, 129, 0.2);
+    /* Green tint */
+    color: #10B981;
 }
 
 /* Modal Form */
