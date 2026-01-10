@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search } from 'lucide-react';
 import styles from './HeroPage.module.css';
 import { useAuth } from '../../context/AuthContext';
+import { usePortfolio } from '../../hooks/usePortfolio';
 import Modal from '../ui/Modal';
 import ThemeToggle from '../ui/ThemeToggle';
 import TopNav from '../ui/TopNav';
@@ -68,6 +69,35 @@ const HeroPage = () => {
         setShowErrorModal(false);
         setErrorMessage('');
     };
+
+    // --- Background Prefetching Strategy ---
+    const { portfolio } = usePortfolio();
+
+    // Silently pre-fetch portfolio data in background when user is idle on Hero Page
+    useEffect(() => {
+        if (currentUser && portfolio.length > 0) {
+            const uniqueTickers = [...new Set(portfolio.map(p => p.ticker))];
+
+            // Wait 1s after load, then start fetching sequentially
+            const timer = setTimeout(() => {
+                console.log("HeroPage: Starting background prefetch for portfolio...");
+
+                uniqueTickers.forEach((ticker, index) => {
+                    // Stagger requests every 200ms to avoid clogging network
+                    setTimeout(() => {
+                        fetchStockData(ticker).then(() => {
+                            console.log(`HeroPage: Prefetched ${ticker}`);
+                        }).catch(() => {
+                            // Ignore errors in prefetch
+                        });
+                    }, index * 200);
+                });
+            }, 1000);
+
+            return () => clearTimeout(timer);
+        }
+    }, [currentUser, portfolio.length]);
+    // ---------------------------------------
 
     return (
         <div className={styles.container}>

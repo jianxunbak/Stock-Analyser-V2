@@ -283,6 +283,9 @@ const PortfolioPage = () => {
         { key: 'growth', label: '5Y Growth' }
     ];
 
+    // Track fetched tickers to avoid duplicate requests in strict mode or rapid re-renders
+    const fetchedTickersRef = React.useRef(new Set());
+
     // Fetch Live Data
     useEffect(() => {
         const fetchAllData = async () => {
@@ -290,14 +293,23 @@ const PortfolioPage = () => {
                 setIsLoadingData(false);
                 return;
             }
-            setIsLoadingData(true);
-            const newData = { ...liveData };
 
             const uniqueTickers = [...new Set(portfolio.map(i => i.ticker))];
+            const tickersToFetch = uniqueTickers.filter(t => !liveData[t] && !fetchedTickersRef.current.has(t));
 
-            await Promise.all(uniqueTickers.map(async (ticker) => {
-                if (newData[ticker]) return;
+            if (tickersToFetch.length === 0) {
+                // If we have all data or are already fetching, just stop loading spinner if it was on
+                if (isLoadingData && uniqueTickers.every(t => liveData[t])) setIsLoadingData(false);
+                return;
+            }
 
+            setIsLoadingData(true);
+
+            // Mark as fetching
+            tickersToFetch.forEach(t => fetchedTickersRef.current.add(t));
+
+            // Fetch in parallel
+            await Promise.all(tickersToFetch.map(async (ticker) => {
                 try {
                     const data = await fetchStockData(ticker);
                     const price = data.overview?.price || 0;
@@ -346,20 +358,29 @@ const PortfolioPage = () => {
                             }
                         }
                     }
-                    newData[ticker] = { price, beta, sector, growth, pegRatio, totalCash, totalDebt };
+
+                    // Update State Functionally to avoid race conditions
+                    setLiveData(prev => ({
+                        ...prev,
+                        [ticker]: { price, beta, sector, growth, pegRatio, totalCash, totalDebt }
+                    }));
+
                 } catch (e) {
                     console.error(`Failed to fetch data for ${ticker}`, e);
                     const isNotFound = e.response && e.response.status === 404;
-                    newData[ticker] = {
-                        price: 0,
-                        beta: 1,
-                        sector: isNotFound ? 'Not Found' : 'Error',
-                        growth: 0
-                    };
+
+                    setLiveData(prev => ({
+                        ...prev,
+                        [ticker]: {
+                            price: 0,
+                            beta: 1,
+                            sector: isNotFound ? 'Not Found' : 'Error',
+                            growth: 0
+                        }
+                    }));
                 }
             }));
 
-            setLiveData(newData);
             setIsLoadingData(false);
         };
         fetchAllData();
