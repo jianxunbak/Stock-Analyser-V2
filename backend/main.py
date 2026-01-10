@@ -1,4 +1,6 @@
 from fastapi import FastAPI, HTTPException
+from typing import List, Optional
+from pydantic import BaseModel, Field
 from fastapi.middleware.cors import CORSMiddleware
 import yfinance as yf
 import pandas as pd
@@ -9,7 +11,9 @@ import json
 from dotenv import load_dotenv
 import pathlib
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+import firebase_admin
+from firebase_admin import credentials, firestore
 
 # Load .env from the project root (one level up from backend/)
 env_path = pathlib.Path(__file__).parent.parent / '.env'
@@ -130,6 +134,31 @@ app.add_middleware(
     allow_headers=["*"],
     expose_headers=["*"],
 )
+
+# --- Firebase Initialization ---
+db = None
+try:
+    # Check if a specific service account file exists
+    cred_path = pathlib.Path(__file__).parent / 'serviceAccountKey.json'
+    
+    if cred_path.exists():
+        cred = credentials.Certificate(str(cred_path))
+        firebase_admin.initialize_app(cred)
+        db = firestore.client()
+        print("SUCCESS: Firebase Admin Initialized with serviceAccountKey.json")
+    else:
+        # Try default/environment (good for deployment)
+        try:
+            firebase_admin.initialize_app()
+            db = firestore.client()
+            print("SUCCESS: Firebase Admin Initialized with Default Credentials")
+        except:
+            print("WARNING: No Firebase credentials found. Caching will be disabled.")
+            db = None
+
+except Exception as e:
+    print(f"WARNING: Firebase Init Failed: {e}")
+    db = None
 
 # def get_validated_support_levels(ticker: str):
 #     try:
@@ -1806,10 +1835,69 @@ class PortfolioItem(BaseModel):
         populate_by_name = True
         extra = "ignore"
 
+class PortfolioTWRRequest(BaseModel):
+    items: List[PortfolioItem]
+    uid: Optional[str] = None
+
 @app.post("/api/portfolio/twr")
-async def get_portfolio_twr(items: List[PortfolioItem]):
+async def get_portfolio_twr(payload: PortfolioTWRRequest):
+    items = payload.items
+    uid = payload.uid
+    
     print(f"--- [API] Calculating Portfolio TWR for {len(items)} items ---")
-    return await calculate_portfolio_twr(items)
+    
+    # --- Caching Logic ---
+    # Generate a hash of the input items to detect ANY changes (edits/adds/deletes)
+    # We stringify the sorted items to ensure consistency
+    import hashlib
+    items_str = json.dumps([item.dict() for item in items], sort_keys=True, default=str)
+    input_hash = hashlib.md5(items_str.encode()).hexdigest()
+
+    if db and uid:
+        try:
+            doc_ref = db.collection('users').document(uid).collection('portfolio_stats').document('performance')
+            doc = doc_ref.get()
+            
+            if doc.exists:
+                data = doc.to_dict()
+                cached_date = data.get('last_updated')
+                cached_hash = data.get('input_hash')
+                
+                # Check 1: Is cache from today?
+                is_today = False
+                if cached_date:
+                    try:
+                        cd = cached_date.date() if hasattr(cached_date, 'date') else datetime.fromisoformat(str(cached_date)).date()
+                        if cd == datetime.now(timezone.utc).date():
+                            is_today = True
+                    except:
+                        pass
+                
+                # Check 2: Exact Match of Portfolio Inputs
+                if is_today and cached_hash == input_hash:
+                    print("DEBUG: Returning Cached TWR Data from Firestore")
+                    return data.get('result')
+
+        except Exception as e:
+            print(f"Cache Read Error: {e}")
+
+    # Calculate
+    result = await calculate_portfolio_twr(items)
+    
+    # Save to Cache
+    if db and uid and result:
+        try:
+            doc_ref = db.collection('users').document(uid).collection('portfolio_stats').document('performance')
+            doc_ref.set({
+                'result': result,
+                'last_updated': datetime.now(timezone.utc),
+                'input_hash': input_hash
+            })
+            print("DEBUG: Saved TWR result to Firestore")
+        except Exception as e:
+            print(f"Cache Write Error: {e}")
+            
+    return result
 
 async def calculate_portfolio_twr(items: List[PortfolioItem]):
     """
@@ -2262,13 +2350,45 @@ async def evaluate_moat(ticker: str):
 
 class PortfolioAnalysisRequest(BaseModel):
     items: List[PortfolioItem]
-    metrics: dict # To pass pre-calculated metrics like sector allocation, beta, etc.
+    metrics: dict
+    uid: Optional[str] = None
 
 @app.post("/api/portfolio/analyze")
 async def analyze_portfolio(request: PortfolioAnalysisRequest):
     api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
         raise HTTPException(status_code=500, detail="GEMINI_API_KEY not found in environment variables.")
+
+    # --- Caching Logic ---
+    if db and request.uid:
+        try:
+            doc_ref = db.collection('users').document(request.uid).collection('portfolio_analysis').document('latest')
+            doc = doc_ref.get()
+            
+            if doc.exists:
+                data = doc.to_dict()
+                ts = data.get('timestamp')
+                # Check if fresh (< 24 hours)
+                if ts:
+                    # Firestore Timestamp -> datetime
+                    if hasattr(ts, 'timestamp'):
+                        # It's a datetime object (Firestore)
+                        delta = datetime.now(timezone.utc) - ts
+                    else:
+                        # Assume string
+                        try:
+                            ts_dt = datetime.fromisoformat(str(ts))
+                            delta = datetime.now(timezone.utc) - ts_dt
+                        except:
+                            delta = timedelta(hours=999) # invalid
+
+                    if delta < timedelta(hours=24):
+                        print("DEBUG: Returning Cached Analysis from Firestore")
+                        return {"analysis": data.get('analysis')}
+        except Exception as e:
+            print(f"Analysis Cache Read Error: {e}") 
+
+    # --- End Cache Check ---
 
 # 1. Calculate Sector Allocation & Identify Missing Sectors
     # We assume 'request.items' contains the current stock data
@@ -2449,6 +2569,19 @@ async def analyze_portfolio(request: PortfolioAnalysisRequest):
              
             if "candidates" in result and result["candidates"]:
                 text = result["candidates"][0]["content"]["parts"][0]["text"]
+                
+                # --- Save to Cache ---
+                if db and request.uid:
+                    try:
+                        doc_ref = db.collection('users').document(request.uid).collection('portfolio_analysis').document('latest')
+                        doc_ref.set({
+                            'analysis': text,
+                            'timestamp': datetime.now(timezone.utc)
+                        })
+                        print("DEBUG: Saved Analysis to Firestore")
+                    except Exception as e:
+                        print(f"Analysis Cache Write Error: {e}")
+                
                 return {"analysis": text}
                 
         except Exception as e:

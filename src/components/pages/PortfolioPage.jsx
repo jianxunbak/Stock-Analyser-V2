@@ -234,14 +234,14 @@ const PortfolioPage = () => {
     // Fetch TWR
     useEffect(() => {
         if (portfolio.length > 0) {
-            calculatePortfolioTWR(portfolio).then(data => {
+            calculatePortfolioTWR(portfolio, currentUser?.uid).then(data => {
                 if (data) {
                     console.log("TWR Data Received:", data);
                     setTwrData(data);
                 }
             });
         }
-    }, [portfolio]);
+    }, [portfolio, currentUser]);
 
     const currencySymbol = currency === 'EUR' ? '€' : (currency === 'GBP' ? '£' : (currency === 'SGD' ? 'S$' : '$'));
 
@@ -273,8 +273,8 @@ const PortfolioPage = () => {
         { key: 'category', label: 'Category' },
         { key: 'sector', label: 'Sector' },
         { key: 'beta', label: 'Beta' },
-        { key: 'initAmt', label: 'Init Amt' },
-        { key: 'invDate', label: 'Inv. Date' },
+        { key: 'initAmt', label: 'Cost Basis' },
+        { key: 'invDate', label: 'Cost Basis Date' },
         { key: 'price', label: 'Price' },
         { key: 'position', label: 'Position' },
         { key: 'totalValue', label: 'Total Value' },
@@ -641,7 +641,7 @@ const PortfolioPage = () => {
                 weightedGrowth: weightedGrowth.toFixed(2),
                 weightedPeg: weightedPeg.toFixed(2)
             };
-            const result = await analyzePortfolio(portfolio, metrics);
+            const result = await analyzePortfolio(portfolio, metrics, currentUser?.uid);
             if (result && result.analysis) {
                 setAnalysis(result.analysis);
             } else {
@@ -1365,7 +1365,7 @@ const PortfolioPage = () => {
 
                                     {/* RIGHT COLUMN: List */}
                                     <div className={styles.allocationList}>
-                                        {categoryData.sort((a, b) => b.value - a.value).map((entry, index) => {
+                                        {[...categoryData].sort((a, b) => b.value - a.value).map((entry, index) => {
                                             const pct = totalValue > 0 ? (entry.value / totalValue) * 100 : 0;
                                             const target = CAT_TARGETS[entry.name] || { min: 0, max: 100 };
                                             let color = '#10B981';
@@ -1473,7 +1473,7 @@ const PortfolioPage = () => {
 
                                 {/* RIGHT COLUMN: List */}
                                 <div className={styles.allocationList}>
-                                    {sectorData.sort((a, b) => b.value - a.value).map((entry, index) => {
+                                    {[...sectorData].sort((a, b) => b.value - a.value).map((entry, index) => {
                                         const pct = totalValue > 0 ? (entry.value / totalValue) * 100 : 0;
                                         const limit = SECTOR_LIMITS[entry.name] || SECTOR_LIMITS.default;
                                         let color = '#10B981';
@@ -1601,8 +1601,8 @@ const PortfolioPage = () => {
                                             {!hiddenColumns.includes('category') && <th>Category</th>}
                                             {!hiddenColumns.includes('sector') && <th>Sector</th>}
                                             {!hiddenColumns.includes('beta') && <th>Beta</th>}
-                                            {!hiddenColumns.includes('initAmt') && <th>Init Amt ({currency})</th>}
-                                            {!hiddenColumns.includes('invDate') && <th>Inv. Date</th>}
+                                            {!hiddenColumns.includes('initAmt') && <th>Cost Basis ({currency})</th>}
+                                            {!hiddenColumns.includes('invDate') && <th>Cost Basis Date</th>}
                                             {!hiddenColumns.includes('price') && <th>Price ({currency})</th>}
                                             {!hiddenColumns.includes('position') && <th>Position</th>}
                                             {!hiddenColumns.includes('totalValue') && <th>Total Value ({currency})</th>}
@@ -1640,8 +1640,8 @@ const PortfolioPage = () => {
                     <div className={styles.addForm}>
                         <div className={styles.formGroup}><label>Ticker</label><input type="text" placeholder="e.g. NVDA" value={newTicker} onChange={e => setNewTicker(e.target.value)} /></div>
                         <div className={styles.formGroup}><label>Shares</label><input type="number" placeholder="e.g. 10" value={newShares} onChange={e => setNewShares(e.target.value)} /></div>
-                        <div className={styles.formGroup}><label>Initial Amount ({currency})</label><input type="number" placeholder="Total amount invested" value={newCost} onChange={e => setNewCost(e.target.value)} /></div>
-                        <div className={styles.formGroup}><label>Purchase Date</label><CustomDatePicker value={newDate} onChange={setNewDate} /></div>
+                        <div className={styles.formGroup}><label>Cost Basis ({currency})</label><input type="number" placeholder="Total amount invested" value={newCost} onChange={e => setNewCost(e.target.value)} /></div>
+                        <div className={styles.formGroup}><label>Cost Basis Date</label><CustomDatePicker value={newDate} onChange={setNewDate} /></div>
                         <div className={styles.formGroup}><label>Category</label><CustomSelect value={newCategory} onChange={setNewCategory} options={['Core', 'Growth', 'Compounder', 'Defensive', 'Speculative']} /></div>
                         {addError && <p className={styles.error}>{addError}</p>}
                     </div>

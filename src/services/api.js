@@ -46,9 +46,9 @@ export const fetchCurrencyRate = async (targetCurrency) => {
     }
 };
 
-export const calculatePortfolioTWR = async (portfolioItems) => {
+export const calculatePortfolioTWR = async (portfolioItems, uid) => {
     try {
-        const response = await axios.post(`${API_URL}/portfolio/twr`, portfolioItems);
+        const response = await axios.post(`${API_URL}/portfolio/twr`, { items: portfolioItems, uid });
         return response.data;
     } catch (error) {
         console.error("Error calculating TWR:", error);
@@ -56,9 +56,9 @@ export const calculatePortfolioTWR = async (portfolioItems) => {
     }
 };
 
-export const analyzePortfolio = async (portfolioItems, metrics) => {
+export const analyzePortfolio = async (portfolioItems, metrics, uid) => {
     try {
-        const response = await axios.post(`${API_URL}/portfolio/analyze`, { items: portfolioItems, metrics });
+        const response = await axios.post(`${API_URL}/portfolio/analyze`, { items: portfolioItems, metrics, uid });
         return response.data;
     } catch (error) {
         console.error("Error analyzing portfolio:", error);
