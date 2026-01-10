@@ -941,20 +941,28 @@ def get_stock_data(ticker: str):
         
         # Define tasks
         def fetch_prop(obj, name):
+            t0 = time.time()
+            res = None
             try:
                 if hasattr(obj, name):
-                    return getattr(obj, name)
+                    res = getattr(obj, name)
             except Exception:
                 pass
-            return None
+            print(f"DEBUG: [Thread] {name} took {time.time() - t0:.2f}s")
+            return res
 
         def fetch_method(obj, name, **kwargs):
+            t0 = time.time()
+            res = None
             try:
                 if hasattr(obj, name):
-                    return getattr(obj, name)(**kwargs)
+                    res = getattr(obj, name)(**kwargs)
             except Exception:
                 pass
-            return None
+            full_name = f"{name}"
+            if kwargs: full_name += f" {kwargs}"
+            print(f"DEBUG: [Thread] {full_name} took {time.time() - t0:.2f}s")
+            return res
             
         future_results = {}
         
