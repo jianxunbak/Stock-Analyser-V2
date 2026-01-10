@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Trash2, Edit2, Check, X, AlertTriangle, ChevronDown, ChevronRight, Eye, Calendar, ChevronLeft } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Edit2, Check, X, AlertTriangle, ChevronDown, ChevronRight, Eye, Calendar, ChevronLeft, RefreshCw } from 'lucide-react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend, AreaChart, Area, XAxis, YAxis, CartesianGrid } from 'recharts';
 import styles from './PortfolioPage.module.css';
 import { usePortfolio } from '../../hooks/usePortfolio';
@@ -287,104 +287,104 @@ const PortfolioPage = () => {
     const fetchedTickersRef = React.useRef(new Set());
 
     // Fetch Live Data
-    useEffect(() => {
-        const fetchAllData = async () => {
-            if (portfolio.length === 0) {
-                setIsLoadingData(false);
-                return;
-            }
-
-            const uniqueTickers = [...new Set(portfolio.map(i => i.ticker))];
-            const tickersToFetch = uniqueTickers.filter(t => !liveData[t] && !fetchedTickersRef.current.has(t));
-
-            if (tickersToFetch.length === 0) {
-                // If we have all data or are already fetching, just stop loading spinner if it was on
-                if (isLoadingData && uniqueTickers.every(t => liveData[t])) setIsLoadingData(false);
-                return;
-            }
-
-            setIsLoadingData(true);
-
-            // Mark as fetching
-            tickersToFetch.forEach(t => fetchedTickersRef.current.add(t));
-
-            // Fetch in parallel
-            await Promise.all(tickersToFetch.map(async (ticker) => {
-                try {
-                    const data = await fetchStockData(ticker);
-                    const price = data.overview?.price || 0;
-                    const beta = data.overview?.beta || 1;
-                    const sector = data.overview?.sector || 'Unknown';
-
-                    let pegRatio = data.overview?.pegRatio;
-                    // Fallback calculation for PEG if missing
-                    if (!pegRatio) {
-                        const pe = data.overview?.peRatio;
-                        let g = 0;
-                        if (data.valuation && data.valuation.assumptions && data.valuation.assumptions["Growth Rate (Yr 1-5)"]) {
-                            g = parseFloat(data.valuation.assumptions["Growth Rate (Yr 1-5)"].replace('%', ''));
-                        } else if (data.growth && data.growth.estimates) {
-                            const est5y = data.growth.estimates.find(e => e.Period === 'Next 5 Years (per annum)' || e.period === 'Next 5 Years (per annum)');
-                            if (est5y) g = parseFloat(String(est5y['Growth Estimates'] || est5y.stockTrend || '0').replace('%', ''));
-                        }
-                        if (pe && g > 0) pegRatio = pe / g;
-                    }
-
-                    const totalCash = data.balance_sheet?.totalCash || 0;
-                    const totalDebt = data.balance_sheet?.totalDebt || 0;
-
-                    let growth = 0;
-                    if (data.valuation && data.valuation.assumptions && data.valuation.assumptions["Growth Rate (Yr 1-5)"]) {
-                        const growthStr = data.valuation.assumptions["Growth Rate (Yr 1-5)"];
-                        growth = parseFloat(growthStr.replace('%', ''));
-                    } else {
-                        const peRatio = data.overview?.peRatio; // Re-declare for local block usage if needed, or stick to closure
-                        let pePegGrowth = null;
-                        if (peRatio && pegRatio) pePegGrowth = (peRatio / pegRatio);
-
-                        let est1y = null;
-                        if (data.growth && data.growth.estimates) {
-                            const est = data.growth.estimates.find(e => e.period === '+1y');
-                            if (est && est.stockTrend) est1y = parseFloat(est.stockTrend) * 100;
-                        }
-
-                        if (pePegGrowth !== null && est1y !== null) growth = Math.min(pePegGrowth, est1y);
-                        else if (pePegGrowth !== null) growth = pePegGrowth;
-                        else if (est1y !== null) growth = est1y;
-                        else {
-                            if (data.growth && data.growth.estimates) {
-                                const est5y = data.growth.estimates.find(e => e.Period === 'Next 5 Years (per annum)' || e.period === 'Next 5 Years (per annum)');
-                                if (est5y) growth = parseFloat(String(est5y['Growth Estimates'] || est5y.stockTrend || '0').replace('%', ''));
-                            }
-                        }
-                    }
-
-                    // Update State Functionally to avoid race conditions
-                    setLiveData(prev => ({
-                        ...prev,
-                        [ticker]: { price, beta, sector, growth, pegRatio, totalCash, totalDebt }
-                    }));
-
-                } catch (e) {
-                    console.error(`Failed to fetch data for ${ticker}`, e);
-                    const isNotFound = e.response && e.response.status === 404;
-
-                    setLiveData(prev => ({
-                        ...prev,
-                        [ticker]: {
-                            price: 0,
-                            beta: 1,
-                            sector: isNotFound ? 'Not Found' : 'Error',
-                            growth: 0
-                        }
-                    }));
-                }
-            }));
-
+    const fetchAllData = useCallback(async (force = false) => {
+        if (portfolio.length === 0) {
             setIsLoadingData(false);
-        };
-        fetchAllData();
-    }, [portfolio]);
+            return;
+        }
+
+        const uniqueTickers = [...new Set(portfolio.map(i => i.ticker))];
+        // If forcing, ignore what we have. If not, only fetch missing.
+        const tickersToFetch = force
+            ? uniqueTickers
+            : uniqueTickers.filter(t => !liveData[t] && !fetchedTickersRef.current.has(t));
+
+        if (tickersToFetch.length === 0) {
+            if (isLoadingData && uniqueTickers.every(t => liveData[t])) setIsLoadingData(false);
+            return;
+        }
+
+        if (!force && isLoadingData) return; // Don't run multiple non-forced loads
+
+        setIsLoadingData(true);
+
+        tickersToFetch.forEach(t => fetchedTickersRef.current.add(t));
+
+        await Promise.all(tickersToFetch.map(async (ticker) => {
+            try {
+                // Pass 'force' to bypass the 1-minute caching if user clicked Refresh
+                const data = await fetchStockData(ticker, force);
+                const price = data.overview?.price || 0;
+                const beta = data.overview?.beta || 1;
+                const sector = data.overview?.sector || 'Unknown';
+
+                // Re-calculate derived metrics
+                let pegRatio = data.overview?.pegRatio;
+                // Fallback calculation for PEG if missing
+                if (!pegRatio) {
+                    const pe = data.overview?.peRatio;
+                    let g = 0;
+                    if (data.valuation?.assumptions?.["Growth Rate (Yr 1-5)"]) {
+                        g = parseFloat(data.valuation.assumptions["Growth Rate (Yr 1-5)"].replace('%', ''));
+                    } else if (data.growth?.estimates) {
+                        const est5y = data.growth.estimates.find(e => e.Period === 'Next 5 Years (per annum)' || e.period === 'Next 5 Years (per annum)');
+                        if (est5y) g = parseFloat(String(est5y['Growth Estimates'] || est5y.stockTrend || '0').replace('%', ''));
+                    }
+                    if (pe && g > 0) pegRatio = pe / g;
+                }
+
+                const totalCash = data.balance_sheet?.totalCash || 0;
+                const totalDebt = data.balance_sheet?.totalDebt || 0;
+
+                let growth = 0;
+                if (data.valuation?.assumptions?.["Growth Rate (Yr 1-5)"]) {
+                    growth = parseFloat(data.valuation.assumptions["Growth Rate (Yr 1-5)"].replace('%', ''));
+                } else {
+                    const peRatio = data.overview?.peRatio;
+                    let pePegGrowth = null;
+                    if (peRatio && pegRatio) pePegGrowth = (peRatio / pegRatio);
+                    let est1y = null;
+                    if (data.growth?.estimates) {
+                        const est = data.growth.estimates.find(e => e.period === '+1y');
+                        if (est && est.stockTrend) est1y = parseFloat(est.stockTrend) * 100;
+                    }
+                    if (pePegGrowth !== null && est1y !== null) growth = Math.min(pePegGrowth, est1y);
+                    else if (pePegGrowth !== null) growth = pePegGrowth;
+                    else if (est1y !== null) growth = est1y;
+                    else {
+                        if (data.growth?.estimates) {
+                            const est5y = data.growth.estimates.find(e => e.Period === 'Next 5 Years (per annum)' || e.period === 'Next 5 Years (per annum)');
+                            if (est5y) growth = parseFloat(String(est5y['Growth Estimates'] || est5y.stockTrend || '0').replace('%', ''));
+                        }
+                    }
+                }
+
+                setLiveData(prev => ({
+                    ...prev,
+                    [ticker]: { price, beta, sector, growth, pegRatio, totalCash, totalDebt }
+                }));
+
+            } catch (e) {
+                console.error(`Failed to fetch data for ${ticker}`, e);
+                setLiveData(prev => ({
+                    ...prev,
+                    [ticker]: {
+                        price: 0,
+                        beta: 1,
+                        sector: 'Error',
+                        growth: 0
+                    }
+                }));
+            }
+        }));
+
+        setIsLoadingData(false);
+    }, [portfolio, liveData, isLoadingData]); // Added isLoadingData to dependencies
+
+    // Initial Load
+    useEffect(() => {
+        fetchAllData(false);
+    }, [fetchAllData]);
 
     // --- Processing & Grouping ---
     const { displayList, totalValue, totalCost, hhi, weightedBeta, weightedGrowth, weightedPeg, weightedLiquidity, totalPerformance, isTotalTWR, sectorData, categoryData, allocationAlerts, healthScore, healthCriteria, isCriticalRisk } = useMemo(() => {

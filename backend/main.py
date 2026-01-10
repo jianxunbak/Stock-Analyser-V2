@@ -850,7 +850,7 @@ def get_stock_data(ticker: str):
                 timestamp = data.get('timestamp')
                 # Cache validity: 24 hours
                 if timestamp and datetime.now(timezone.utc) - timestamp < timedelta(hours=24):
-                    print(f"DEBUG: Returning CACHED data for {ticker} (Age: {datetime.now(timezone.utc) - timestamp})")
+                    print(f"--- [SOURCE: FIREBASE] Returning CACHED data for {ticker} (Age: {datetime.now(timezone.utc) - timestamp})")
                     payload = data['payload']
                     
                     # --- HYBRID CACHE: Refresh Price Only ---
@@ -907,7 +907,7 @@ def get_stock_data(ticker: str):
 
     try:
         start_time = time.time()
-        print(f"\n--- [API] START FETCHING DATA FOR {ticker} ---")
+        print(f"\n--- [SOURCE: YFINANCE] START FETCHING DATA FOR {ticker} ---")
         
         stock = yf.Ticker(ticker)
         info = stock.info
