@@ -959,6 +959,7 @@ def get_stock_data(ticker: str):
         future_results = {}
         
         # Start Parallel Fetch immediately (include INFO)
+        f_start = time.time()
         with concurrent.futures.ThreadPoolExecutor(max_workers=15) as executor:
             future_results = {
                 "info": executor.submit(fetch_prop, stock, 'info'),
@@ -994,10 +995,7 @@ def get_stock_data(ticker: str):
         # Validate if stock exists
         if not info or (info.get("currentPrice") is None and info.get("regularMarketPrice") is None):
             print(f"ERROR: Stock {ticker} not found or no price data")
-            # raise HTTPException(status_code=404, detail=f"Stock '{ticker}' not found or no data available.")
-            # Note: We continue cautiously or fail. Let's fail as per original logic.
-            # But wait, sometimes 'info' fails but others work? Unlikely.
-            pass
+            raise HTTPException(status_code=404, detail=f"Stock '{ticker}' not found or no data available.")
 
         # Build Overview
         quote_type = info.get("quoteType", "EQUITY")
