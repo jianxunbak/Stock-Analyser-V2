@@ -46,12 +46,12 @@ export const AuthProvider = ({ children }) => {
                 // 3. Clean the user's email
                 const userEmail = user.email ? user.email.toLowerCase() : "";
 
-                console.log("Auth: Checking security for user:", userEmail);
-                console.log("Auth: Allowed list:", allowedList);
+                // console.log("Auth: Checking security for user:", userEmail);
+                // console.log("Auth: Allowed list:", allowedList);
 
                 // 4. The Decision Logic
                 if (allowedList.includes(userEmail)) {
-                    console.log("Auth: Access granted for", userEmail);
+                    // console.log("Auth: Access granted for", userEmail);
                     setCurrentUser(user);
                 } else {
                     console.warn(`Unauthorized login attempt by: ${userEmail}`);

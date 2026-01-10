@@ -27,7 +27,7 @@ export const fetchStockData = async (ticker, forceRefresh = false) => {
     // 3. Perform Fetch
     const fetchPromise = (async () => {
         try {
-            console.log(`Starting fetch for ${ticker}...`);
+            console.log(`%c⏳ Requesting ${ticker} from Backend API... (Source: TBD)`, "color: #9ca3af; font-style: italic;");
             const response = await axios.get(`${API_URL}/stock/${ticker}`, {
                 timeout: 60000 // 60 seconds timeout
             });
