@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Star, Menu, X, LogOut, PieChart, TrendingUp, ArrowLeft } from 'lucide-react';
+import { Search, Star, Menu, X, LogOut, PieChart, TrendingUp, ArrowLeft, FlaskConical } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import ThemeToggle from './ThemeToggle';
 import styles from './TopNav.module.css';
@@ -98,6 +98,9 @@ export const TopNavActions = ({
                                 <PieChart size={16} className={styles.starIcon} />
                             </button>
                         )}
+                        <button onClick={() => navigate('/test-portfolio')} className={styles.watchlistButton} title="Test Portfolios">
+                            <FlaskConical size={16} className={styles.starIcon} />
+                        </button>
                         {showUserBtn && (
                             <button className={styles.userButton} onClick={() => setShowProfileModal(true)} title="User Profile">
                                 {currentUser.photoURL ? (
@@ -144,6 +147,9 @@ export const TopNavActions = ({
                                     <PieChart size={16} className={styles.starIcon} />
                                 </button>
                             )}
+                            <button className={styles.watchlistButton} onClick={() => handleMobileAction(() => navigate('/test-portfolio'))} title="Test Portfolios">
+                                <FlaskConical size={16} className={styles.starIcon} />
+                            </button>
                             {showUserBtn && (
                                 <button className={styles.userButton} onClick={() => handleMobileAction(() => setShowProfileModal(true))} title="Profile">
                                     {currentUser.photoURL ? (

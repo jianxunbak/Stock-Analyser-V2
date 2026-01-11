@@ -4,6 +4,7 @@ import { StockDataProvider } from './hooks/useStockData';
 import HeroPage from './components/pages/HeroPage';
 import DashboardPage from './components/pages/DashboardPage';
 import PortfolioPage from './components/pages/PortfolioPage';
+import TestPortfolioPage from './components/pages/TestPortfolioPage';
 
 import ScrollToTop from './components/ui/ScrollToTop';
 
@@ -15,6 +16,7 @@ function App() {
           <Route path="/" element={<HeroPage />} />
           <Route path="/analysis" element={<DashboardPage />} />
           <Route path="/portfolio" element={<PortfolioPage />} />
+          <Route path="/test-portfolio" element={<TestPortfolioPage />} />
         </Routes>
         <ScrollToTop />
       </Router>

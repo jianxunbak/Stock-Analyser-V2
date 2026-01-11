@@ -1,3 +1,5 @@
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from '../../firebase';
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus, Trash2, Edit2, Check, X, AlertTriangle, ChevronDown, ChevronRight, Eye, Calendar, ChevronLeft, RefreshCw } from 'lucide-react';
@@ -223,9 +225,30 @@ const PortfolioPage = () => {
     // AI Analysis State
     const [analysis, setAnalysis] = useState('');
     const [analyzing, setAnalyzing] = useState(false);
+    const [userClearedAnalysis, setUserClearedAnalysis] = useState(false);
 
     // Screen Size Logic
     const [isSmallScreen, setIsSmallScreen] = useState(window.innerWidth < 1280);
+
+    // Sync Analysis from Firestore
+    useEffect(() => {
+        if (!currentUser) {
+            setAnalysis('');
+            return;
+        }
+
+        const userRef = doc(db, "users", currentUser.uid);
+        const unsubscribe = onSnapshot(userRef, (docSnap) => {
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                if (data.analysis !== undefined) {
+                    setAnalysis(data.analysis || '');
+                }
+            }
+        });
+
+        return () => unsubscribe();
+    }, [currentUser]);
 
     useEffect(() => {
         const handleResize = () => setIsSmallScreen(window.innerWidth < 1280);
@@ -240,7 +263,7 @@ const PortfolioPage = () => {
         if (portfolio.length > 0) {
             calculatePortfolioTWR(portfolio, currentUser?.uid).then(data => {
                 if (data) {
-                    console.log("TWR Data Received:", data);
+                    // console.log("TWR Data Received:", data);
                     setTwrData(data);
                 }
             });
@@ -666,7 +689,7 @@ const PortfolioPage = () => {
                 weightedGrowth: weightedGrowth.toFixed(2),
                 weightedPeg: weightedPeg.toFixed(2)
             };
-            const result = await analyzePortfolio(portfolio, metrics, currentUser?.uid, force);
+            const result = await analyzePortfolio(portfolio, metrics, currentUser?.uid, force, 'main');
             if (result && result.analysis) {
                 setAnalysis(result.analysis);
             }
@@ -678,11 +701,7 @@ const PortfolioPage = () => {
     }, [portfolio, weightedBeta, weightedGrowth, weightedPeg, currentUser]);
 
     // Auto-fetch analysis if we have data but no analysis yet
-    useEffect(() => {
-        if (portfolio.length > 0 && !analysis && !analyzing && currentUser) {
-            handleAnalyzePortfolio();
-        }
-    }, [portfolio.length, analysis, analyzing, currentUser, handleAnalyzePortfolio]);
+    // Auto-fetch analysis REMOVED. User must click manually.
 
 
 
@@ -1109,27 +1128,31 @@ const PortfolioPage = () => {
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                                             <h3 className={styles.scoreTitle}>Portfolio Health Score</h3>
                                             <div
-                                                className={`${styles.totalScore} ${healthScore >= 85 ? styles.scoreGreen : (healthScore >= 70 ? styles.scoreYellow : styles.scoreRed)}`}
+                                                className={`${styles.totalScore} ${portfolio.length === 0 ? '' : (healthScore >= 85 ? styles.scoreGreen : (healthScore >= 70 ? styles.scoreYellow : styles.scoreRed))}`}
+                                                style={portfolio.length === 0 ? { color: 'var(--text-secondary)', borderColor: 'var(--text-secondary)' } : {}}
                                             >
-                                                {healthScore}/100
+                                                {portfolio.length === 0 ? 'N/A' : `${healthScore}/100`}
                                             </div>
                                         </div>
                                         <div style={{
                                             fontSize: '0.8rem',
                                             lineHeight: '1.4',
                                             fontStyle: 'italic',
-                                            color: healthScore >= 85 ? '#10B981' : (healthScore >= 70 ? '#F59E0B' : '#EF4444'),
+                                            color: portfolio.length === 0 ? 'var(--text-secondary)' : (healthScore >= 85 ? '#10B981' : (healthScore >= 70 ? '#F59E0B' : '#EF4444')),
                                             display: 'flex',
                                             gap: '0.5rem',
                                             alignItems: 'start'
                                         }}>
                                             <div style={{ marginTop: '2px', flexShrink: 0 }}><AlertTriangle size={14} /></div>
                                             <span>
-                                                {healthScore >= 85
-                                                    ? "Portfolio is Institutional Grade. You are diversified, balanced, and primed for growth."
-                                                    : (healthScore >= 70
-                                                        ? "Portfolio is Healthy and has Good structure, but may be slightly heavy in one sector or category."
-                                                        : "Portfolio is Risky and requires immediate rebalancing.")
+                                                {portfolio.length === 0
+                                                    ? "There are currently no Stocks in your portfolio."
+                                                    : (healthScore >= 85
+                                                        ? "Portfolio is Institutional Grade. You are diversified, balanced, and primed for growth."
+                                                        : (healthScore >= 70
+                                                            ? "Portfolio is Healthy and has Good structure, but may be slightly heavy in one sector or category."
+                                                            : "Portfolio is Risky and requires immediate rebalancing.")
+                                                    )
                                                 }
                                             </span>
                                         </div>
@@ -1556,18 +1579,33 @@ const PortfolioPage = () => {
                     <div className={styles.portfolioCard}>
                         <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <h2 style={{ fontSize: '1.5rem', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>AI Portfolio Analysis</h2>
-                            <button
-                                className={styles.tableActionButton}
-                                onClick={() => handleAnalyzePortfolio(true)}
-                                disabled={analyzing}
-                                title="Ask Gemini"
-                            >
-                                {analyzing ? (
-                                    <div className={styles.spinner} style={{ width: 18, height: 18 }}></div>
-                                ) : (
-                                    <div style={{ fontSize: 20 }}>✨</div>
+                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                {analysis && (
+                                    <button
+                                        className={styles.tableActionButton}
+                                        onClick={() => {
+                                            setAnalysis('');
+                                            setUserClearedAnalysis(true);
+                                        }}
+                                        title="Clear Analysis"
+                                        style={{ color: '#EF4444', borderColor: '#EF4444' }}
+                                    >
+                                        <Trash2 size={18} />
+                                    </button>
                                 )}
-                            </button>
+                                <button
+                                    className={styles.tableActionButton}
+                                    onClick={() => handleAnalyzePortfolio(true)}
+                                    disabled={analyzing}
+                                    title="Ask Gemini"
+                                >
+                                    {analyzing ? (
+                                        <div className={styles.spinner} style={{ width: 18, height: 18 }}></div>
+                                    ) : (
+                                        <div style={{ fontSize: 20 }}>✨</div>
+                                    )}
+                                </button>
+                            </div>
                         </div>
 
                         {analysis && (
