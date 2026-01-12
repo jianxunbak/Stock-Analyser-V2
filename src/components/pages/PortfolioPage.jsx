@@ -2,7 +2,7 @@ import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../../firebase';
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Trash2, Edit2, Check, X, AlertTriangle, ChevronDown, ChevronRight, Eye, Calendar, ChevronLeft, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Edit2, Check, X, AlertTriangle, ChevronDown, ChevronRight, Eye, Calendar, ChevronLeft, RefreshCw, Menu } from 'lucide-react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend, AreaChart, Area, XAxis, YAxis, CartesianGrid } from 'recharts';
 import styles from './PortfolioPage.module.css';
 import { usePortfolio } from '../../hooks/usePortfolio';
