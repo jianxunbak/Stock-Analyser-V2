@@ -31,11 +31,14 @@ console.error = (...args) => {
   originalError(...args);
 };
 
-if (import.meta.env.PROD) {
-  console.log = () => { };
-  console.warn = () => { };
-  console.error = () => { };
-}
+// if (import.meta.env.PROD) {
+//   console.log = () => { };
+//   console.warn = () => { };
+//   console.error = () => { };
+// }
+
+// GLOBAL ERROR HANDLER FOR MOBILE DEBUGGING (Moved to index.html)
+// window.onerror = ...
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
