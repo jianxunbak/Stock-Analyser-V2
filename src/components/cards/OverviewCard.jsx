@@ -4,12 +4,12 @@ import {
     AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Line, ComposedChart, Legend
 } from 'recharts';
 import styles from './OverviewCard.module.css';
-import { ChevronDown, Star } from 'lucide-react';
+import { ChevronDown, Star, PlusCircle } from 'lucide-react';
 import { fetchChartData } from '../../services/api';
 import { useTheme } from '../../context/ThemeContext';
 import { useWatchlist } from '../../hooks/useWatchlist';
 
-const OverviewCard = ({ moatStatusLabel, isMoatEvaluating, currency = 'USD', currencySymbol = '$', currentRate = 1 }) => {
+const OverviewCard = ({ moatStatusLabel, isMoatEvaluating, currency = 'USD', currencySymbol = '$', currentRate = 1, onAddToPortfolio = () => { } }) => {
     const { stockData, loading } = useStockData();
     const { theme } = useTheme();
     const { watchlist, addToWatchlist, removeFromWatchlist } = useWatchlist();
@@ -506,6 +506,17 @@ const OverviewCard = ({ moatStatusLabel, isMoatEvaluating, currency = 'USD', cur
                                         size={24}
                                         fill={isInWatchlist ? "#F59E0B" : "none"}
                                         color={isInWatchlist ? "#F59E0B" : "#9CA3AF"}
+                                    />
+                                </button>
+                                <button
+                                    onClick={onAddToPortfolio}
+                                    className={styles.watchlistBtn}
+                                    title="Add to Portfolio"
+                                    style={{ marginLeft: '0.5rem' }}
+                                >
+                                    <PlusCircle
+                                        size={24}
+                                        color="#9CA3AF"
                                     />
                                 </button>
                             </div>

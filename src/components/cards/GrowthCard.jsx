@@ -1,12 +1,14 @@
 import React, { useMemo } from 'react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import { useStockData } from '../../hooks/useStockData';
 import {
     ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart
 } from 'recharts';
 import styles from './GrowthCard.module.css';
 import { useTheme } from '../../context/ThemeContext';
+import CardToggleButton from '../ui/CardToggleButton';
 
-const GrowthCard = ({ currency = 'USD', currencySymbol = '$', currentRate = 1 }) => {
+const GrowthCard = ({ currency = 'USD', currencySymbol = '$', currentRate = 1, isOpen = true, onToggle = null }) => {
     const { stockData, loading } = useStockData();
     const [barSize, setBarSize] = React.useState(20);
     const [chartHeight, setChartHeight] = React.useState(300);
@@ -137,153 +139,159 @@ const GrowthCard = ({ currency = 'USD', currencySymbol = '$', currentRate = 1 })
     return (
         <div ref={cardRef} className={styles.card}>
             {/* <LiquidGlassBackground /> */}
-            <h3 className={styles.title}>Growth Analysis</h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: isOpen ? '1rem' : '0' }}>
+                <h3 className={styles.title} style={{ margin: 0 }}>Growth Analysis</h3>
+                {onToggle && (
+                    <CardToggleButton isOpen={isOpen} onClick={onToggle} />
+                )}
+            </div>
 
-            {(stockData.overview.quoteType !== 'ETF' && stockData.overview.industry !== 'ETF') ? (
-                <>
-                    <div className={styles.metricsGrid}>
-                        <div className={styles.metricCard}>
-                            <h4 className={styles.metricLabel}>Median Annual Revenue Growth</h4>
-                            <p className={`${styles.metricValue} ${growth.revenueGrowth > 0 ? styles.positive : styles.negative}`}>
-                                {(growth.revenueGrowth * 100).toFixed(2)}%
-                            </p>
+            {isOpen && (
+                (stockData.overview.quoteType !== 'ETF' && stockData.overview.industry !== 'ETF') ? (
+                    <>
+                        <div className={styles.metricsGrid}>
+                            <div className={styles.metricCard}>
+                                <h4 className={styles.metricLabel}>Median Annual Revenue Growth</h4>
+                                <p className={`${styles.metricValue} ${growth.revenueGrowth > 0 ? styles.positive : styles.negative}`}>
+                                    {(growth.revenueGrowth * 100).toFixed(2)}%
+                                </p>
+                            </div>
+
                         </div>
+                        <div className={styles.allChartsContainer}>
+                            {/* Chart 1: Revenue, Net Income, OCF */}
+                            <div className={styles.chartContainer}>
+                                <h4 className={styles.chartTitle}>Financial Performance</h4>
+                                {financialData.length > 0 ? (
+                                    <div className={styles.chartWrapper}>
+                                        {isInView ? (
+                                            <ResponsiveContainer width="100%" height={chartHeight}>
+                                                <ComposedChart data={financialData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                                    <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
+                                                    <XAxis dataKey="date" stroke={chartColors.text} tick={{ fontSize: 10, fill: chartColors.text }} />
+                                                    <YAxis stroke={chartColors.text} tick={{ fontSize: 10, fill: chartColors.text }} tickFormatter={(val) => `${currencySymbol}${(val / 1e9).toFixed(0)}B`} />
+                                                    <Tooltip
+                                                        wrapperStyle={{ outline: 'none', backgroundColor: 'transparent' }}
+                                                        contentStyle={{
+                                                            // 1. BACKGROUND
+                                                            backgroundColor: theme === 'dark' ? 'rgba(20, 20, 20, 0.7)' : 'rgba(255, 255, 255, 0.7)',
 
-                    </div>
-                    <div className={styles.allChartsContainer}>
-                        {/* Chart 1: Revenue, Net Income, OCF */}
-                        <div className={styles.chartContainer}>
-                            <h4 className={styles.chartTitle}>Financial Performance</h4>
-                            {financialData.length > 0 ? (
-                                <div className={styles.chartWrapper}>
-                                    {isInView ? (
-                                        <ResponsiveContainer width="100%" height={chartHeight}>
-                                            <ComposedChart data={financialData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                                                <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
-                                                <XAxis dataKey="date" stroke={chartColors.text} tick={{ fontSize: 10, fill: chartColors.text }} />
-                                                <YAxis stroke={chartColors.text} tick={{ fontSize: 10, fill: chartColors.text }} tickFormatter={(val) => `${currencySymbol}${(val / 1e9).toFixed(0)}B`} />
-                                                <Tooltip
-                                                    wrapperStyle={{ outline: 'none', backgroundColor: 'transparent' }}
-                                                    contentStyle={{
-                                                        // 1. BACKGROUND
-                                                        backgroundColor: theme === 'dark' ? 'rgba(20, 20, 20, 0.7)' : 'rgba(255, 255, 255, 0.7)',
+                                                            // 2. BORDER RADIUS
+                                                            borderRadius: '15px',
 
-                                                        // 2. BORDER RADIUS
-                                                        borderRadius: '15px',
+                                                            // 3. BACKDROP FILTER
+                                                            backdropFilter: 'blur(15px) saturate(150%) brightness(1.2)',
+                                                            WebkitBackdropFilter: 'blur(15px) saturate(150%) brightness(1.2)',
 
-                                                        // 3. BACKDROP FILTER
-                                                        backdropFilter: 'blur(15px) saturate(150%) brightness(1.2)',
-                                                        WebkitBackdropFilter: 'blur(15px) saturate(150%) brightness(1.2)',
+                                                            // 4. BORDERS
+                                                            borderTop: theme === 'dark' ? '1px solid rgba(255, 255, 255, 0.4)' : '1px solid rgb(255, 255, 255)',
+                                                            borderLeft: theme === 'dark' ? '1px solid rgba(255, 255, 255, 0.4)' : '1px solid rgb(255, 255, 255)',
+                                                            borderRight: theme === 'dark' ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid rgba(0, 0, 0, 0.2)',
+                                                            borderBottom: theme === 'dark' ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid rgba(0, 0, 0, 0.2)',
 
-                                                        // 4. BORDERS
-                                                        borderTop: theme === 'dark' ? '1px solid rgba(255, 255, 255, 0.4)' : '1px solid rgb(255, 255, 255)',
-                                                        borderLeft: theme === 'dark' ? '1px solid rgba(255, 255, 255, 0.4)' : '1px solid rgb(255, 255, 255)',
-                                                        borderRight: theme === 'dark' ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid rgba(0, 0, 0, 0.2)',
-                                                        borderBottom: theme === 'dark' ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid rgba(0, 0, 0, 0.2)',
+                                                            // 5. BOX SHADOW
+                                                            boxShadow: theme === 'dark'
+                                                                ? '0 10px 20px rgba(0, 0, 0, 0.5), inset 2px 2px 3px rgba(255, 255, 255, 0.2), inset -1px -1px 3px rgba(0, 0, 0, 0.5)'
+                                                                : '10px 10px 20px rgba(0, 0, 0, 0.2), -3px -3px 10px rgba(0, 0, 0, 0.1), inset 2px 2px 3px rgba(255, 255, 255, 0.2), inset -1px -1px 3px rgba(0, 0, 0, 0.5)',
 
-                                                        // 5. BOX SHADOW
-                                                        boxShadow: theme === 'dark'
-                                                            ? '0 10px 20px rgba(0, 0, 0, 0.5), inset 2px 2px 3px rgba(255, 255, 255, 0.2), inset -1px -1px 3px rgba(0, 0, 0, 0.5)'
-                                                            : '10px 10px 20px rgba(0, 0, 0, 0.2), -3px -3px 10px rgba(0, 0, 0, 0.1), inset 2px 2px 3px rgba(255, 255, 255, 0.2), inset -1px -1px 3px rgba(0, 0, 0, 0.5)',
-
-                                                        // 6. FONT/TEXT STYLES
-                                                        color: chartColors.tooltipColor,
-                                                        fontSize: '12px',
-                                                        padding: '8px 10px'
-                                                    }}
-                                                    formatter={(value, name) => [`${currencySymbol}${Number(value / 1e9).toFixed(2)}B`, name]}
-                                                    itemStyle={{ margin: '0', padding: '0' }}
-                                                    labelStyle={{
-                                                        margin: '0 0 3px 0',
-                                                        padding: '0',
-                                                        fontWeight: 'bold'
-                                                    }}
-                                                />
-                                                <Legend wrapperStyle={{
-                                                    width: '100%', display: 'flex', justifyContent: 'center', paddingTop: 10, paddingLeft: 35, fontSize: '12px', alignItems: 'center'
-                                                }} />
-                                                <Bar dataKey="revenue" name="Revenue" fill="#3B82F6" barSize={barSize} />
-                                                <Bar dataKey="opIncome" name="Operating Income" fill="#8B5CF6" barSize={barSize} />
-                                                <Bar dataKey="netIncome" name="Net Income" fill="#F59E0B" barSize={barSize} />
-                                                <Bar dataKey="ocf" name="Operating Cash Flow" fill="#10B981" barSize={barSize} />
-                                            </ComposedChart>
-                                        </ResponsiveContainer>
-                                    ) : <div style={{ height: chartHeight }} />}
-                                </div>
-                            ) : (
-                                <div className={styles.noData}>
-                                    No financial data available for chart
-                                </div>
-                            )}
-                        </div>
+                                                            // 6. FONT/TEXT STYLES
+                                                            color: chartColors.tooltipColor,
+                                                            fontSize: '12px',
+                                                            padding: '8px 10px'
+                                                        }}
+                                                        formatter={(value, name) => [`${currencySymbol}${Number(value / 1e9).toFixed(2)}B`, name]}
+                                                        itemStyle={{ margin: '0', padding: '0' }}
+                                                        labelStyle={{
+                                                            margin: '0 0 3px 0',
+                                                            padding: '0',
+                                                            fontWeight: 'bold'
+                                                        }}
+                                                    />
+                                                    <Legend wrapperStyle={{
+                                                        width: '100%', display: 'flex', justifyContent: 'center', paddingTop: 10, paddingLeft: 35, fontSize: '12px', alignItems: 'center'
+                                                    }} />
+                                                    <Bar dataKey="revenue" name="Revenue" fill="#3B82F6" barSize={barSize} />
+                                                    <Bar dataKey="opIncome" name="Operating Income" fill="#8B5CF6" barSize={barSize} />
+                                                    <Bar dataKey="netIncome" name="Net Income" fill="#F59E0B" barSize={barSize} />
+                                                    <Bar dataKey="ocf" name="Operating Cash Flow" fill="#10B981" barSize={barSize} />
+                                                </ComposedChart>
+                                            </ResponsiveContainer>
+                                        ) : <div style={{ height: chartHeight }} />}
+                                    </div>
+                                ) : (
+                                    <div className={styles.noData}>
+                                        No financial data available for chart
+                                    </div>
+                                )}
+                            </div>
 
 
-                        {/* Chart 2: Margins */}
-                        <div className={styles.chartContainer}>
-                            <h4 className={styles.chartTitle}>Margin Trends</h4>
-                            {marginData.length > 0 ? (
-                                <div className={styles.chartWrapper}>
-                                    {isInView ? (
-                                        <ResponsiveContainer width="100%" height={chartHeight}>
-                                            <ComposedChart data={marginData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                                                <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
-                                                <XAxis dataKey="date" stroke={chartColors.text} tick={{ fontSize: 10, fill: chartColors.text }} />
-                                                <YAxis stroke={chartColors.text} tick={{ fontSize: 10, fill: chartColors.text }} tickFormatter={(val) => `${val}%`} />
-                                                <Tooltip
-                                                    wrapperStyle={{ outline: 'none', backgroundColor: 'transparent' }}
-                                                    contentStyle={{
-                                                        // 1. BACKGROUND
-                                                        backgroundColor: theme === 'dark' ? 'rgba(20, 20, 20, 0.7)' : 'rgba(255, 255, 255, 0.7)',
+                            {/* Chart 2: Margins */}
+                            <div className={styles.chartContainer}>
+                                <h4 className={styles.chartTitle}>Margin Trends</h4>
+                                {marginData.length > 0 ? (
+                                    <div className={styles.chartWrapper}>
+                                        {isInView ? (
+                                            <ResponsiveContainer width="100%" height={chartHeight}>
+                                                <ComposedChart data={marginData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                                    <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
+                                                    <XAxis dataKey="date" stroke={chartColors.text} tick={{ fontSize: 10, fill: chartColors.text }} />
+                                                    <YAxis stroke={chartColors.text} tick={{ fontSize: 10, fill: chartColors.text }} tickFormatter={(val) => `${val}%`} />
+                                                    <Tooltip
+                                                        wrapperStyle={{ outline: 'none', backgroundColor: 'transparent' }}
+                                                        contentStyle={{
+                                                            // 1. BACKGROUND
+                                                            backgroundColor: theme === 'dark' ? 'rgba(20, 20, 20, 0.7)' : 'rgba(255, 255, 255, 0.7)',
 
-                                                        // 2. BORDER RADIUS
-                                                        borderRadius: '15px',
+                                                            // 2. BORDER RADIUS
+                                                            borderRadius: '15px',
 
-                                                        // 3. BACKDROP FILTER
-                                                        backdropFilter: 'blur(15px) saturate(150%) brightness(1.2)',
-                                                        WebkitBackdropFilter: 'blur(15px) saturate(150%) brightness(1.2)',
+                                                            // 3. BACKDROP FILTER
+                                                            backdropFilter: 'blur(15px) saturate(150%) brightness(1.2)',
+                                                            WebkitBackdropFilter: 'blur(15px) saturate(150%) brightness(1.2)',
 
-                                                        // 4. BORDERS
-                                                        borderTop: theme === 'dark' ? '1px solid rgba(255, 255, 255, 0.4)' : '1px solid rgb(255, 255, 255)',
-                                                        borderLeft: theme === 'dark' ? '1px solid rgba(255, 255, 255, 0.4)' : '1px solid rgb(255, 255, 255)',
-                                                        borderRight: theme === 'dark' ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid rgba(0, 0, 0, 0.2)',
-                                                        borderBottom: theme === 'dark' ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid rgba(0, 0, 0, 0.2)',
+                                                            // 4. BORDERS
+                                                            borderTop: theme === 'dark' ? '1px solid rgba(255, 255, 255, 0.4)' : '1px solid rgb(255, 255, 255)',
+                                                            borderLeft: theme === 'dark' ? '1px solid rgba(255, 255, 255, 0.4)' : '1px solid rgb(255, 255, 255)',
+                                                            borderRight: theme === 'dark' ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid rgba(0, 0, 0, 0.2)',
+                                                            borderBottom: theme === 'dark' ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid rgba(0, 0, 0, 0.2)',
 
-                                                        // 5. BOX SHADOW
-                                                        boxShadow: theme === 'dark'
-                                                            ? '0 10px 20px rgba(0, 0, 0, 0.5), inset 2px 2px 3px rgba(255, 255, 255, 0.2), inset -1px -1px 3px rgba(0, 0, 0, 0.5)'
-                                                            : '10px 10px 20px rgba(0, 0, 0, 0.2), -3px -3px 10px rgba(0, 0, 0, 0.1), inset 2px 2px 3px rgba(255, 255, 255, 0.2), inset -1px -1px 3px rgba(0, 0, 0, 0.5)',
+                                                            // 5. BOX SHADOW
+                                                            boxShadow: theme === 'dark'
+                                                                ? '0 10px 20px rgba(0, 0, 0, 0.5), inset 2px 2px 3px rgba(255, 255, 255, 0.2), inset -1px -1px 3px rgba(0, 0, 0, 0.5)'
+                                                                : '10px 10px 20px rgba(0, 0, 0, 0.2), -3px -3px 10px rgba(0, 0, 0, 0.1), inset 2px 2px 3px rgba(255, 255, 255, 0.2), inset -1px -1px 3px rgba(0, 0, 0, 0.5)',
 
-                                                        // 6. FONT/TEXT STYLES
-                                                        color: chartColors.tooltipColor,
-                                                        fontSize: '12px',
-                                                        padding: '8px 10px'
-                                                    }}
-                                                    formatter={(value, name) => [`${Number(value).toFixed(2)}%`, name]}
-                                                    itemStyle={{ margin: '0', padding: '0' }}
-                                                    labelStyle={{
-                                                        margin: '0 0 3px 0',
-                                                        padding: '0',
-                                                        fontWeight: 'bold'
-                                                    }}
-                                                />
-                                                <Legend wrapperStyle={{
-                                                    width: '100%', display: 'flex', justifyContent: 'center', paddingTop: 10, paddingLeft: 35, fontSize: '12px', alignItems: 'center'
-                                                }} />
-                                                <Bar dataKey="grossMargin" name="Gross Margin" fill="#8B5CF6" barSize={barSize} />
-                                                <Bar dataKey="netMargin" name="Net Margin" fill="#EC4899" barSize={barSize} />
-                                            </ComposedChart>
-                                        </ResponsiveContainer>
-                                    ) : <div style={{ height: chartHeight }} />}
-                                </div>
-                            ) : (
-                                <div className={styles.noData}>
-                                    No margin data available for chart
-                                </div>
-                            )}
-                        </div>
+                                                            // 6. FONT/TEXT STYLES
+                                                            color: chartColors.tooltipColor,
+                                                            fontSize: '12px',
+                                                            padding: '8px 10px'
+                                                        }}
+                                                        formatter={(value, name) => [`${Number(value).toFixed(2)}%`, name]}
+                                                        itemStyle={{ margin: '0', padding: '0' }}
+                                                        labelStyle={{
+                                                            margin: '0 0 3px 0',
+                                                            padding: '0',
+                                                            fontWeight: 'bold'
+                                                        }}
+                                                    />
+                                                    <Legend wrapperStyle={{
+                                                        width: '100%', display: 'flex', justifyContent: 'center', paddingTop: 10, paddingLeft: 35, fontSize: '12px', alignItems: 'center'
+                                                    }} />
+                                                    <Bar dataKey="grossMargin" name="Gross Margin" fill="#8B5CF6" barSize={barSize} />
+                                                    <Bar dataKey="netMargin" name="Net Margin" fill="#EC4899" barSize={barSize} />
+                                                </ComposedChart>
+                                            </ResponsiveContainer>
+                                        ) : <div style={{ height: chartHeight }} />}
+                                    </div>
+                                ) : (
+                                    <div className={styles.noData}>
+                                        No margin data available for chart
+                                    </div>
+                                )}
+                            </div>
 
-                        {/* Growth Estimates Table */}
-                        {/* {growth.estimates && growth.estimates.length > 0 && (
+                            {/* Growth Estimates Table */}
+                            {/* {growth.estimates && growth.estimates.length > 0 && (
                             <div>
                                 <h4 className={styles.tableTitle}>5-Year Growth Estimates</h4>
                                 <div className={styles.tableContainer}>
@@ -310,13 +318,13 @@ const GrowthCard = ({ currency = 'USD', currencySymbol = '$', currentRate = 1 })
                                 </div>
                             </div>
                         )} */}
+                        </div>
+                    </>
+                ) : (
+                    <div className={styles.etfMessage}>
+                        This is an ETF and Growth Analysis is not applicable.
                     </div>
-                </>
-            ) : (
-                <div className={styles.etfMessage}>
-                    This is an ETF and Growth Analysis is not applicable.
-                </div>
-            )}
+                ))}
         </div>
     );
 };

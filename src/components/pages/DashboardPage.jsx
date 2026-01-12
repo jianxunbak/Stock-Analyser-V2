@@ -13,6 +13,9 @@ import FinancialTables from '../cards/FinancialTables';
 
 import Modal from '../ui/Modal';
 import WatchlistModal from '../ui/WatchlistModal';
+import AddStockToPortfolioModal from '../ui/AddStockToPortfolioModal';
+import { usePortfolio } from '../../hooks/usePortfolio';
+import { useTestPortfolio } from '../../hooks/useTestPortfolio';
 import { ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import UserProfileModal from '../ui/UserProfileModal';
@@ -30,6 +33,16 @@ const DashboardPage = () => {
     const [showErrorModal, setShowErrorModal] = useState(false);
     const [showWatchlist, setShowWatchlist] = useState(false);
     const [showProfileModal, setShowProfileModal] = useState(false);
+    const [showAddPortfolioModal, setShowAddPortfolioModal] = useState(false);
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+    const { addToPortfolio: addToMainPortfolio } = usePortfolio();
+    const { portfolioList, addStockToTestPortfolio } = useTestPortfolio();
+
+    useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth < 768);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
     const [searchParams, setSearchParams] = useSearchParams();
     const navigate = useNavigate();
     const { currentUser, logout, loading: authLoading } = useAuth();
@@ -45,6 +58,22 @@ const DashboardPage = () => {
         const params = new URLSearchParams(window.location.search);
         return !!params.get('ticker');
     });
+
+    // Collapsible Cards State
+    const [openCards, setOpenCards] = useState({
+        overview: true,
+        growth: true,
+        profitability: true,
+        moat: true,
+        debt: true,
+        valuation: true,
+        support: true,
+        financials: true
+    });
+
+    const toggleCard = (card) => {
+        setOpenCards(prev => ({ ...prev, [card]: !prev[card] }));
+    };
 
     // Persistence: Load ticker from localStorage or URL on mount
     // Persistence: Load ticker from localStorage or URL on mount and update
@@ -113,6 +142,26 @@ const DashboardPage = () => {
         setShowErrorModal(false);
     };
 
+    const handleAddStockToPortfolio = async (data) => {
+        const { portfolioIds, ...stockData } = data;
+
+        try {
+            const promises = portfolioIds.map(async (id) => {
+                if (id === 'main') {
+                    return addToMainPortfolio(stockData);
+                } else {
+                    return addStockToTestPortfolio(id, stockData);
+                }
+            });
+
+            await Promise.all(promises);
+            setShowAddPortfolioModal(false);
+        } catch (error) {
+            console.error("Failed to add stock to portfolio(s):", error);
+            throw error;
+        }
+    };
+
 
 
     if (authLoading) return <div>Loading...</div>; // Or a spinner
@@ -161,6 +210,7 @@ const DashboardPage = () => {
 
                 <div className={styles.grid}>
                     <div className={styles.colSpan3} style={{ position: 'relative' }}>
+
                         <FluidCard>
                             <OverviewCard
                                 moatStatusLabel={moatStatusLabel}
@@ -168,28 +218,41 @@ const DashboardPage = () => {
                                 currency={currency}
                                 currencySymbol={currencySymbol}
                                 currentRate={currentRate}
+                                isOpen={openCards.overview}
+                                onToggle={() => toggleCard('overview')}
+                                onAddToPortfolio={() => setShowAddPortfolioModal(true)}
                             />
                         </FluidCard>
+
                     </div>
                     <div className={styles.colSpan3}>
+
                         <FluidCard>
                             <GrowthCard
                                 currency={currency}
                                 currencySymbol={currencySymbol}
                                 currentRate={currentRate}
+                                isOpen={openCards.growth}
+                                onToggle={() => toggleCard('growth')}
                             />
                         </FluidCard>
+
                     </div>
                     <div className={styles.colSpan3}>
+
                         <FluidCard>
                             <ProfitabilityCard
                                 currency={currency}
                                 currencySymbol={currencySymbol}
                                 currentRate={currentRate}
+                                isOpen={openCards.profitability}
+                                onToggle={() => toggleCard('profitability')}
                             />
                         </FluidCard>
+
                     </div>
                     <div className={styles.colSpan3}>
+
                         <FluidCard>
                             <MoatCard
                                 key={stockData?.overview?.symbol || 'moat-card'}
@@ -198,47 +261,66 @@ const DashboardPage = () => {
                                 currency={currency}
                                 currencySymbol={currencySymbol}
                                 currentRate={currentRate}
+                                isOpen={openCards.moat}
+                                onToggle={() => toggleCard('moat')}
                             />
                         </FluidCard>
+
                     </div>
                     <div className={styles.colSpan1}>
+
                         <FluidCard>
                             <DebtCard
                                 currency={currency}
                                 currencySymbol={currencySymbol}
                                 currentRate={currentRate}
+                                isOpen={openCards.debt}
+                                onToggle={() => toggleCard('debt')}
                             />
                         </FluidCard>
+
                     </div>
 
                     <div className={styles.colSpan1}>
+
                         <FluidCard>
                             <ValuationCard
                                 currency={currency}
                                 currencySymbol={currencySymbol}
                                 currentRate={currentRate}
+                                isOpen={openCards.valuation}
+                                onToggle={() => toggleCard('valuation')}
                             />
                         </FluidCard>
+
                     </div>
 
                     <div className={styles.colSpan1}>
+
                         <FluidCard>
                             <SupportResistanceCard
                                 currency={currency}
                                 currencySymbol={currencySymbol}
                                 currentRate={currentRate}
+                                isOpen={openCards.support}
+                                onToggle={() => toggleCard('support')}
                             />
                         </FluidCard>
+
                     </div>
 
                     <div className={styles.colSpan3}>
+
                         <FluidCard>
                             <FinancialTables
                                 currency={currency}
                                 currencySymbol={currencySymbol}
                                 currentRate={currentRate}
+                                isOpen={openCards.financials}
+                                onToggle={() => toggleCard('financials')}
                             />
                         </FluidCard>
+
                     </div>
 
 
@@ -261,6 +343,16 @@ const DashboardPage = () => {
                         user={currentUser}
                     />
                 )}
+
+                <AddStockToPortfolioModal
+                    isOpen={showAddPortfolioModal}
+                    onClose={() => setShowAddPortfolioModal(false)}
+                    ticker={stockData?.overview?.symbol || ticker}
+                    portfolioList={portfolioList}
+                    onAdd={handleAddStockToPortfolio}
+                    isMobile={isMobile}
+                    currentRate={currentRate}
+                />
             </div>
             {
                 (loading || initialLoading) && (

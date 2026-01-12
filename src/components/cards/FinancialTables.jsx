@@ -2,12 +2,12 @@ import React, { useState } from 'react';
 import { useStockData } from '../../hooks/useStockData';
 import styles from './FinancialTables.module.css';
 import { ChevronDown, ChevronUp } from 'lucide-react';
+import CardToggleButton from '../ui/CardToggleButton';
 
 
-const FinancialTables = ({ currency = 'USD', currencySymbol = '$', currentRate = 1 }) => {
+const FinancialTables = ({ currency = 'USD', currencySymbol = '$', currentRate = 1, isOpen = true, onToggle = null }) => {
     const { stockData, loading } = useStockData();
     const [activeTab, setActiveTab] = useState('income_statement');
-    const [isExpanded, setIsExpanded] = useState(false);
 
     if (loading) return <div className={styles.loading}></div>;
     if (!stockData || !stockData.financials) return null;
@@ -90,15 +90,10 @@ const FinancialTables = ({ currency = 'USD', currencySymbol = '$', currentRate =
             {/* <LiquidGlassBackground /> */}
             <div className={styles.header} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: 0 }}>
                 <h3 className={styles.title}>Financial Statements</h3>
-                <button
-                    onClick={() => setIsExpanded(!isExpanded)}
-                    className={styles.iconButton}
-                >
-                    {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-                </button>
+                {onToggle && <CardToggleButton isOpen={isOpen} onClick={onToggle} />}
             </div>
 
-            {isExpanded && (
+            {isOpen && (
                 <>
                     {isETF ? (
                         <div className={styles.etfMessage}>

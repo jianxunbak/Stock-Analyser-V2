@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { db } from '../firebase';
-import { collection, onSnapshot, addDoc, deleteDoc, doc, updateDoc, query, orderBy, setDoc } from 'firebase/firestore';
+import { collection, onSnapshot, addDoc, deleteDoc, doc, updateDoc, query, orderBy, setDoc, arrayUnion } from 'firebase/firestore';
 import { useAuth } from '../context/AuthContext';
 
 // Helper to generate a unique ID
@@ -76,34 +76,39 @@ export const useTestPortfolio = (portfolioId) => {
         return () => unsubscribe();
     }, [currentUser, portfolioId]);
 
-    const addToPortfolio = async (item) => {
-        if (!currentUser || !portfolioId) return;
+    const addStockToTestPortfolio = async (targetId, item) => {
+        if (!currentUser || !targetId) return;
         try {
-            // 1. Ensure the user document exists (Materialize parent)
+            // 1. Ensure the user document exists
             const userRef = doc(db, 'users', currentUser.uid);
             await setDoc(userRef, {
                 lastActive: new Date().toISOString(),
                 hasTestPortfolios: true
             }, { merge: true });
 
-            // 2. Add to portfolio array in the portfolio document
-            const portRef = doc(db, 'users', currentUser.uid, 'test_portfolios', portfolioId);
+            // 2. Add to portfolio array using arrayUnion
+            const portRef = doc(db, 'users', currentUser.uid, 'test_portfolios', targetId);
             const newItem = {
                 ...item,
                 id: generateId(),
                 createdAt: new Date().toISOString()
             };
 
-            const newList = [...portfolio, newItem];
-            await setDoc(portRef, {
-                portfolio: newList,
+            await updateDoc(portRef, {
+                portfolio: arrayUnion(newItem),
                 updatedAt: new Date().toISOString()
-            }, { merge: true });
+            });
 
-            console.info(`[FIRESTORE SUCCESS] Added ${item.ticker} to array in: users/${currentUser.uid}/test_portfolios/${portfolioId}`);
+            console.info(`[FIRESTORE SUCCESS] Added ${item.ticker} to test portfolio: ${targetId}`);
         } catch (error) {
             console.error("Error adding to test portfolio:", error);
+            throw error;
         }
+    };
+
+    const addToPortfolio = async (item) => {
+        if (!portfolioId) return;
+        await addStockToTestPortfolio(portfolioId, item);
     };
 
     const removeFromPortfolio = async (id) => {
@@ -259,6 +264,7 @@ export const useTestPortfolio = (portfolioId) => {
         loading,
         listLoading,
         addToPortfolio,
+        addStockToTestPortfolio,
         removeFromPortfolio,
         updatePortfolioItem,
         renamePortfolio,

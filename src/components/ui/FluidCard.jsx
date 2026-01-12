@@ -13,8 +13,6 @@ export const FluidCard = ({ children, className = '' }) => {
     });
 
     // Map velocity to scaleY (stretch)
-    // When scrolling fast, stretch vertically (scaleY > 1)
-    // Adjusted range for balanced effect (max 3.5% stretch)
     const scaleY = useTransform(smoothVelocity, [-3000, 0, 3000], [1.035, 1, 1.035]);
 
     const [isSmallScreen, setIsSmallScreen] = React.useState(window.innerWidth < 768);
@@ -38,5 +36,6 @@ export const FluidCard = ({ children, className = '' }) => {
         </motion.div>
     );
 };
+
 
 export default FluidCard;

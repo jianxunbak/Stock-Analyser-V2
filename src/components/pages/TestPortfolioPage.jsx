@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Trash2, Edit2, Check, X, AlertTriangle, ChevronDown, ChevronRight, Eye, Calendar, ChevronLeft, RefreshCw, Copy, Square, CheckSquare, CopyCheck, FileX, Menu } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Edit2, Check, X, AlertTriangle, ChevronDown, ChevronRight, Eye, Calendar, ChevronLeft, RefreshCw, Copy, Square, CheckSquare, CopyCheck, FileX, Menu, ChevronUp } from 'lucide-react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend, AreaChart, Area, XAxis, YAxis, CartesianGrid } from 'recharts';
 import styles from './TestPortfolioPage.module.css';
 import { useTestPortfolio } from '../../hooks/useTestPortfolio';
@@ -12,9 +12,10 @@ import { useTheme } from '../../context/ThemeContext';
 import Modal from '../ui/Modal';
 import CascadingHeader from '../CascadingHeader';
 import { TopNavLogo, TopNavActions } from '../ui/TopNav';
+import FluidCard from '../ui/FluidCard';
 import WatchlistModal from '../ui/WatchlistModal';
 import UserProfileModal from '../ui/UserProfileModal';
-import FluidCard from '../ui/FluidCard';
+
 
 // --- Constants ---
 const CAT_TARGETS = {
@@ -1035,6 +1036,16 @@ const TestPortfolioPage = () => {
         />
     );
 
+    const [openCards, setOpenCards] = useState({
+        allocation: true,
+        ai: true,
+        holdings: true
+    });
+
+    const toggleCard = (key) => {
+        setOpenCards(prev => ({ ...prev, [key]: !prev[key] }));
+    };
+
     const logoContainerContent = (
         <TopNavLogo customTitle={isMobileTitle ? null : "My Portfolio"} />
     );
@@ -1166,7 +1177,11 @@ const TestPortfolioPage = () => {
                             ) : (
                                 <>
                                     <button onClick={() => startEdit(item)} className={styles.iconBtn}><Edit2 size={18} /></button>
-                                    <button onClick={() => removeFromPortfolio(item.id)} className={styles.iconBtn}><Trash2 size={18} color="#EF4444" /></button>
+                                    <button onClick={() => {
+                                        if (window.confirm(`Are you sure you want to delete ${item.ticker} from your portfolio?`)) {
+                                            removeFromPortfolio(item.id);
+                                        }
+                                    }} className={styles.iconBtn}><Trash2 size={18} color="#EF4444" /></button>
                                 </>
                             )
                         ) : null}
@@ -1178,7 +1193,7 @@ const TestPortfolioPage = () => {
     };
 
     const ChartLegend = () => (
-        <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', marginTop: '1rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', marginTop: '0.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                 <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#10B981' }}></div>
                 <span style={{ fontSize: '0.75rem', color: '#9CA3AF' }}>Ideal</span>
@@ -1439,7 +1454,8 @@ const TestPortfolioPage = () => {
             <div className={styles.pageGrid}>
                 {/* Card 1: Summary + Health Breakdown */}
                 <div className={styles.topCardContainer}>
-                    <FluidCard className={styles.topCard}>
+
+                    <FluidCard>
                         <div className={styles.portfolioCard}>
                             {/* Header Row: Title/Selector + Actions */}
                             <div className={`${styles.headerRow} ${menuOpen && isMobile ? styles.expandedMenu : ''}`} style={{
@@ -1790,362 +1806,418 @@ const TestPortfolioPage = () => {
                             )}
                         </div>
                     </FluidCard>
+
                 </div>
 
                 {portfolioList.length > 0 && (
                     <>
                         {/* Card 2: Charts */}
+
                         <FluidCard>
                             <div className={styles.portfolioCard}>
-                                <div style={{ marginBottom: '1.5rem' }}>
+                                <div style={{ marginBottom: openCards.allocation ? '1.5rem' : '0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                     <h2 style={{ fontSize: '1.5rem', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>Portfolio Allocation</h2>
+                                    <button
+                                        className={styles.tableActionButton}
+                                        onClick={() => toggleCard('allocation')}
+                                        title={openCards.allocation ? "Collapse" : "Expand"}
+                                    >
+                                        {openCards.allocation ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                                    </button>
                                 </div>
-                                <div className={styles.allocationGrid}>
-                                    {portfolio.length === 0 ? (
-                                        <div style={{
-                                            fontSize: '0.9rem',
-                                            color: 'var(--text-secondary)',
-                                            fontStyle: 'italic',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '0.5rem',
-                                            gridColumn: '1 / -1',
-                                            padding: '0 0 1rem 0'
-                                        }}>
-                                            <AlertTriangle size={14} />
-                                            There are currently no stocks in this test portfolio
-                                        </div>
-                                    ) : (
-                                        <>
-                                            {/* Left Column: Category Allocation */}
-                                            <div className={styles.allocationColumn}>
-                                                <h3 className={styles.allocationTitle}>Category Allocation</h3>
-                                                {/* Chart & Legend */}
-                                                <div style={{ height: 300, position: 'relative', width: '100%', minWidth: 0, overflow: 'hidden' }}>
-                                                    {isMounted && (
-                                                        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0} debounce={50}>
-                                                            <PieChart>
-                                                                <Pie
-                                                                    data={categoryData}
-                                                                    cx="50%"
-                                                                    cy="50%"
-                                                                    innerRadius={60}
-                                                                    outerRadius={80}
-                                                                    paddingAngle={5}
-                                                                    dataKey="value"
-                                                                >
-                                                                    {categoryData.map((entry, index) => { // Use categoryData here
-                                                                        const pct = totalValue > 0 ? (entry.value / totalValue) * 100 : 0;
-                                                                        // Determine limits based on Category
-                                                                        let limit = 100; // Default
-                                                                        if (entry.name === 'Growth') limit = CAT_TARGETS.Growth.max;
-                                                                        else if (entry.name === 'Core') limit = CAT_TARGETS.Core.max;
-                                                                        else if (entry.name === 'Compounder') limit = CAT_TARGETS.Compounder.max;
-                                                                        else if (entry.name === 'Defensive') limit = CAT_TARGETS.Defensive.max;
-                                                                        else if (entry.name === 'Speculative') limit = CAT_TARGETS.Speculative.max;
-
-                                                                        // Color Logic
-                                                                        let color = '#10B981'; // Green (Good)
-
-                                                                        if (entry.name === 'Growth') {
-                                                                            if (pct < CAT_TARGETS.Growth.min) color = '#F59E0B'; // Too Low (Orange)
-                                                                            if (pct > CAT_TARGETS.Growth.max) color = '#EF4444'; // Too High (Red)
-                                                                        } else if (entry.name === 'Core') {
-                                                                            if (pct < CAT_TARGETS.Core.min) color = '#EF4444'; // Too Low (Red - Core is key)
-                                                                            if (pct > CAT_TARGETS.Core.max) color = '#F59E0B'; // Too High (Orange)
-                                                                        } else if (entry.name === 'Compounder') {
-                                                                            if (pct < CAT_TARGETS.Compounder.min) color = '#F59E0B'; // Too Low (Orange)
-                                                                            if (pct > CAT_TARGETS.Compounder.max) color = '#EF4444'; // Too High (Red)
-                                                                        } else if (entry.name === 'Defensive') {
-                                                                            if (pct < CAT_TARGETS.Defensive.min) color = '#F59E0B'; // Too Low (Orange)
-                                                                            if (pct > CAT_TARGETS.Defensive.max) color = '#EF4444'; // Too High (Red)
-                                                                        } else if (entry.name === 'Speculative') {
-                                                                            if (pct > CAT_TARGETS.Speculative.max) color = '#EF4444'; // Too High (Red)
-                                                                        }
-
-                                                                        return <Cell key={`cell-${index}`} fill={color} stroke="rgba(0,0,0,0)" />;
-                                                                    })}
-                                                                </Pie>
-                                                                <Tooltip
-                                                                    contentStyle={{
-                                                                        backgroundColor: theme === 'dark' ? 'rgba(20, 20, 20, 0.9)' : 'rgba(255, 255, 255, 0.9)',
-                                                                        borderColor: theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
-                                                                        borderRadius: '8px',
-                                                                        fontSize: '12px',
-                                                                        padding: '8px 10px'
-                                                                    }}
-                                                                    itemStyle={{ margin: '0', padding: '0', fontWeight: 500, color: theme === 'dark' ? '#fff' : '#111827' }}
-                                                                    labelStyle={{
-                                                                        margin: '0 0 3px 0',
-                                                                        padding: '0',
-                                                                        fontWeight: 'bold',
-                                                                        color: theme === 'dark' ? '#D1D5DB' : '#374151'
-                                                                    }}
-                                                                    formatter={(value, name) => [`${currencySymbol}${value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })} (${(totalValue > 0 ? (value / totalValue) * 100 : 0).toFixed(1)}%)`, name]}
-                                                                />
-                                                            </PieChart>
-                                                        </ResponsiveContainer>
-                                                    )}
-                                                </div>
-                                                <ChartLegend />
-
-                                                {/* Footnote under chart */}
-                                                <div style={{ marginTop: '0.5rem', padding: '0 1rem', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                                                    <h5 style={{ margin: '0 0 0.25rem 0', fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-secondary)', letterSpacing: '0.05em', textAlign: 'center' }}>Target Allocations</h5>
-                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', alignItems: 'center', fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
-                                                        {Object.entries(CAT_TARGETS).map(([key, val]) => (
-                                                            <span key={key}>{key}: <span style={{ fontWeight: 600 }}>{val.min}% - {val.max}%</span></span>
-                                                        ))}
-                                                    </div>
-                                                </div>
-
-                                                {/* RIGHT COLUMN: List */}
-                                                <div className={styles.allocationList}>
-                                                    {[...categoryData].sort((a, b) => b.value - a.value).map((entry, index) => { // Use categoryData here
-                                                        const pct = totalValue > 0 ? (entry.value / totalValue) * 100 : 0;
-                                                        let color = '#10B981';
-                                                        // Simplified list color logic for consistency
-                                                        if (entry.name === 'Growth') {
-                                                            if (pct < CAT_TARGETS.Growth.min) color = '#F59E0B';
-                                                            if (pct > CAT_TARGETS.Growth.max) color = '#EF4444';
-                                                        } else if (entry.name === 'Core') {
-                                                            if (pct < CAT_TARGETS.Core.min) color = '#EF4444';
-                                                            if (pct > CAT_TARGETS.Core.max) color = '#F59E0B';
-                                                        } else if (entry.name === 'Compounder') {
-                                                            if (pct < CAT_TARGETS.Compounder.min) color = '#F59E0B';
-                                                            if (pct > CAT_TARGETS.Compounder.max) color = '#EF4444';
-                                                        } else if (entry.name === 'Defensive') {
-                                                            if (pct < CAT_TARGETS.Defensive.min) color = '#F59E0B';
-                                                            if (pct > CAT_TARGETS.Defensive.max) color = '#EF4444';
-                                                        } else if (entry.name === 'Speculative') {
-                                                            if (pct > CAT_TARGETS.Speculative.max) color = '#EF4444';
-                                                        }
-                                                        return (
-                                                            <div key={index} className={styles.allocationItem}>
-                                                                <div className={styles.allocationNameGroup}>
-                                                                    <div className={styles.allocationColorDot} style={{ backgroundColor: color }}></div>
-                                                                    <span className={styles.allocationName}>{entry.name}</span>
-                                                                </div>
-                                                                <div className={styles.allocationStats}>
-                                                                    <span className={styles.allocationAmount}>{currencySymbol}{entry.value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
-                                                                    <span className={styles.allocationPct}>{pct.toFixed(1)}%</span>
-                                                                </div>
-                                                            </div>
-                                                        );
-                                                    })}
-                                                </div>
+                                {openCards.allocation && (
+                                    <div className={styles.allocationGrid}>
+                                        {portfolio.length === 0 ? (
+                                            <div style={{
+                                                fontSize: '0.9rem',
+                                                color: 'var(--text-secondary)',
+                                                fontStyle: 'italic',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '0.5rem',
+                                                gridColumn: '1 / -1',
+                                                padding: '0 0 1rem 0'
+                                            }}>
+                                                <AlertTriangle size={14} />
+                                                There are currently no stocks in this test portfolio
                                             </div>
+                                        ) : (
+                                            <>
+                                                {/* Left Column: Category Allocation */}
+                                                <div className={styles.allocationColumn}>
+                                                    <h3 className={styles.allocationTitle}>Category Allocation</h3>
+                                                    {/* Chart & Legend */}
+                                                    <div style={{ height: 300, position: 'relative', width: '100%', minWidth: 0, overflow: 'hidden' }}>
+                                                        {isMounted && (
+                                                            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0} debounce={50}>
+                                                                <PieChart>
+                                                                    <Pie
+                                                                        data={categoryData}
+                                                                        cx="50%"
+                                                                        cy="50%"
+                                                                        innerRadius={60}
+                                                                        outerRadius={80}
+                                                                        paddingAngle={5}
+                                                                        dataKey="value"
+                                                                    >
+                                                                        {categoryData.map((entry, index) => { // Use categoryData here
+                                                                            const pct = totalValue > 0 ? (entry.value / totalValue) * 100 : 0;
+                                                                            // Determine limits based on Category
+                                                                            let limit = 100; // Default
+                                                                            if (entry.name === 'Growth') limit = CAT_TARGETS.Growth.max;
+                                                                            else if (entry.name === 'Core') limit = CAT_TARGETS.Core.max;
+                                                                            else if (entry.name === 'Compounder') limit = CAT_TARGETS.Compounder.max;
+                                                                            else if (entry.name === 'Defensive') limit = CAT_TARGETS.Defensive.max;
+                                                                            else if (entry.name === 'Speculative') limit = CAT_TARGETS.Speculative.max;
 
-                                            {/* Right Column: Sector Allocation */}
-                                            <div className={styles.allocationColumn}>
-                                                <h3 className={styles.allocationTitle}>Sector Allocation</h3>
-                                                <div style={{ height: 300, position: 'relative', width: '100%', minWidth: 0, overflow: 'hidden' }}>
-                                                    {isMounted && (
-                                                        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0} debounce={50}>
-                                                            <PieChart>
-                                                                <Pie
-                                                                    data={sectorData}
-                                                                    cx="50%"
-                                                                    cy="50%"
-                                                                    innerRadius={60}
-                                                                    outerRadius={80}
-                                                                    paddingAngle={5}
-                                                                    dataKey="value"
-                                                                >
-                                                                    {sectorData.map((entry, index) => {
-                                                                        const pct = totalValue > 0 ? (entry.value / totalValue) * 100 : 0;
-                                                                        const limit = SECTOR_LIMITS[entry.name] || SECTOR_LIMITS.default;
-                                                                        let color = '#10B981';
-                                                                        if (pct > limit) {
-                                                                            if (pct <= limit + 2) color = '#F59E0B'; // Slight warning
-                                                                            else color = '#EF4444'; // Danger
-                                                                        }
-                                                                        return <Cell key={`cell-${index}`} fill={color} stroke="rgba(0,0,0,0)" />;
-                                                                    })}
-                                                                </Pie>
-                                                                <Tooltip
-                                                                    contentStyle={{
-                                                                        backgroundColor: theme === 'dark' ? 'rgba(20, 20, 20, 0.9)' : 'rgba(255, 255, 255, 0.9)',
-                                                                        borderColor: theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
-                                                                        borderRadius: '8px',
-                                                                        fontSize: '12px',
-                                                                        padding: '8px 10px'
-                                                                    }}
-                                                                    itemStyle={{ margin: '0', padding: '0', fontWeight: 500, color: theme === 'dark' ? '#fff' : '#111827' }}
-                                                                    labelStyle={{
-                                                                        margin: '0 0 3px 0',
-                                                                        padding: '0',
-                                                                        fontWeight: 'bold',
-                                                                        color: theme === 'dark' ? '#D1D5DB' : '#374151'
-                                                                    }}
-                                                                    formatter={(value, name) => [`${currencySymbol}${value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })} (${(totalValue > 0 ? (value / totalValue) * 100 : 0).toFixed(1)}%)`, name]}
-                                                                />
-                                                            </PieChart>
-                                                        </ResponsiveContainer>
-                                                    )}
-                                                </div>
-                                                <ChartLegend />
+                                                                            // Color Logic
+                                                                            let color = '#10B981'; // Green (Good)
 
-                                                {/* Footnote under chart */}
-                                                <div style={{ marginTop: '0.5rem', padding: '0 1rem', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                                                    <h5 style={{ margin: '0 0 0.25rem 0', fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-secondary)', letterSpacing: '0.05em', textAlign: 'center' }}>Sector Limits</h5>
-                                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', justifyContent: 'center' }}>
-                                                        {Object.entries(SECTOR_LIMITS)
-                                                            .filter(([k]) => !['Information Technology', 'Financials', 'Consumer Non-Cyclical'].includes(k)) // Filter duplicates/legacy
-                                                            .map(([key, val]) => (
+                                                                            if (entry.name === 'Growth') {
+                                                                                if (pct < CAT_TARGETS.Growth.min) color = '#F59E0B'; // Too Low (Orange)
+                                                                                if (pct > CAT_TARGETS.Growth.max) color = '#EF4444'; // Too High (Red)
+                                                                            } else if (entry.name === 'Core') {
+                                                                                if (pct < CAT_TARGETS.Core.min) color = '#EF4444'; // Too Low (Red - Core is key)
+                                                                                if (pct > CAT_TARGETS.Core.max) color = '#F59E0B'; // Too High (Orange)
+                                                                            } else if (entry.name === 'Compounder') {
+                                                                                if (pct < CAT_TARGETS.Compounder.min) color = '#F59E0B'; // Too Low (Orange)
+                                                                                if (pct > CAT_TARGETS.Compounder.max) color = '#EF4444'; // Too High (Red)
+                                                                            } else if (entry.name === 'Defensive') {
+                                                                                if (pct < CAT_TARGETS.Defensive.min) color = '#F59E0B'; // Too Low (Orange)
+                                                                                if (pct > CAT_TARGETS.Defensive.max) color = '#EF4444'; // Too High (Red)
+                                                                            } else if (entry.name === 'Speculative') {
+                                                                                if (pct > CAT_TARGETS.Speculative.max) color = '#EF4444'; // Too High (Red)
+                                                                            }
+
+                                                                            return <Cell key={`cell-${index}`} fill={color} stroke="rgba(0,0,0,0)" />;
+                                                                        })}
+                                                                    </Pie>
+                                                                    <Tooltip
+                                                                        contentStyle={{
+                                                                            backgroundColor: theme === 'dark' ? 'rgba(20, 20, 20, 0.9)' : 'rgba(255, 255, 255, 0.9)',
+                                                                            borderColor: theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
+                                                                            borderRadius: '8px',
+                                                                            fontSize: '12px',
+                                                                            padding: '8px 10px'
+                                                                        }}
+                                                                        itemStyle={{ margin: '0', padding: '0', fontWeight: 500, color: theme === 'dark' ? '#fff' : '#111827' }}
+                                                                        labelStyle={{
+                                                                            margin: '0 0 3px 0',
+                                                                            padding: '0',
+                                                                            fontWeight: 'bold',
+                                                                            color: theme === 'dark' ? '#D1D5DB' : '#374151'
+                                                                        }}
+                                                                        formatter={(value, name) => [`${currencySymbol}${value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })} (${(totalValue > 0 ? (value / totalValue) * 100 : 0).toFixed(1)}%)`, name]}
+                                                                    />
+                                                                </PieChart>
+                                                            </ResponsiveContainer>
+                                                        )}
+                                                    </div>
+                                                    <ChartLegend />
+
+                                                    {/* Footnote under chart */}
+                                                    {/* Footnote under chart */}
+                                                    <div className={styles.chartFootnote}>
+                                                        <h5 style={{ margin: '0 0 0.25rem 0', fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-secondary)', letterSpacing: '0.05em', textAlign: 'center' }}>Target Allocations</h5>
+                                                        <div className={styles.footnoteList}>
+                                                            {Object.entries(CAT_TARGETS).map(([key, val]) => (
                                                                 <div key={key} style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', background: 'rgba(255,255,255,0.03)', padding: '2px 6px', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                                                                    {key === 'default' ? 'Others' : key}: <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>{val}%</span>
+                                                                    {key}: <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>{val.min}-{val.max}%</span>
                                                                 </div>
                                                             ))}
+                                                        </div>
+                                                    </div>
+
+                                                    {/* RIGHT COLUMN: List */}
+                                                    <div className={styles.allocationList}>
+                                                        {[...categoryData].sort((a, b) => b.value - a.value).map((entry, index) => { // Use categoryData here
+                                                            const pct = totalValue > 0 ? (entry.value / totalValue) * 100 : 0;
+                                                            let color = '#10B981';
+                                                            // Simplified list color logic for consistency
+                                                            if (entry.name === 'Growth') {
+                                                                if (pct < CAT_TARGETS.Growth.min) color = '#F59E0B';
+                                                                if (pct > CAT_TARGETS.Growth.max) color = '#EF4444';
+                                                            } else if (entry.name === 'Core') {
+                                                                if (pct < CAT_TARGETS.Core.min) color = '#EF4444';
+                                                                if (pct > CAT_TARGETS.Core.max) color = '#F59E0B';
+                                                            } else if (entry.name === 'Compounder') {
+                                                                if (pct < CAT_TARGETS.Compounder.min) color = '#F59E0B';
+                                                                if (pct > CAT_TARGETS.Compounder.max) color = '#EF4444';
+                                                            } else if (entry.name === 'Defensive') {
+                                                                if (pct < CAT_TARGETS.Defensive.min) color = '#F59E0B';
+                                                                if (pct > CAT_TARGETS.Defensive.max) color = '#EF4444';
+                                                            } else if (entry.name === 'Speculative') {
+                                                                if (pct > CAT_TARGETS.Speculative.max) color = '#EF4444';
+                                                            }
+                                                            return (
+                                                                <div key={index} className={styles.allocationItem}>
+                                                                    <div className={styles.allocationNameGroup}>
+                                                                        <div className={styles.allocationColorDot} style={{ backgroundColor: color }}></div>
+                                                                        <span className={styles.allocationName}>{entry.name}</span>
+                                                                    </div>
+                                                                    <div className={styles.allocationStats}>
+                                                                        <span className={styles.allocationAmount}>{currencySymbol}{entry.value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
+                                                                        <span className={styles.allocationPct}>{pct.toFixed(1)}%</span>
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })}
                                                     </div>
                                                 </div>
-                                                {/* RIGHT COLUMN: List */}
-                                                <div className={styles.allocationList}>
-                                                    {[...sectorData].sort((a, b) => b.value - a.value).map((entry, index) => {
-                                                        const pct = totalValue > 0 ? (entry.value / totalValue) * 100 : 0;
-                                                        const limit = SECTOR_LIMITS[entry.name] || SECTOR_LIMITS.default;
-                                                        let color = '#10B981';
-                                                        if (pct > limit) {
-                                                            if (pct <= limit + 2) color = '#F59E0B';
-                                                            else color = '#EF4444';
-                                                        }
-                                                        return (
-                                                            <div key={index} className={styles.allocationItem}>
-                                                                <div className={styles.allocationNameGroup}>
-                                                                    <div className={styles.allocationColorDot} style={{ backgroundColor: color }}></div>
-                                                                    <span className={styles.allocationName}>{entry.name}</span>
+
+                                                {/* Right Column: Sector Allocation */}
+                                                <div className={styles.allocationColumn}>
+                                                    <h3 className={styles.allocationTitle}>Sector Allocation</h3>
+                                                    <div style={{ height: 300, position: 'relative', width: '100%', minWidth: 0, overflow: 'hidden' }}>
+                                                        {isMounted && (
+                                                            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0} debounce={50}>
+                                                                <PieChart>
+                                                                    <Pie
+                                                                        data={sectorData}
+                                                                        cx="50%"
+                                                                        cy="50%"
+                                                                        innerRadius={60}
+                                                                        outerRadius={80}
+                                                                        paddingAngle={5}
+                                                                        dataKey="value"
+                                                                    >
+                                                                        {sectorData.map((entry, index) => {
+                                                                            const pct = totalValue > 0 ? (entry.value / totalValue) * 100 : 0;
+                                                                            const limit = SECTOR_LIMITS[entry.name] || SECTOR_LIMITS.default;
+                                                                            let color = '#10B981';
+                                                                            if (pct > limit) {
+                                                                                if (pct <= limit + 2) color = '#F59E0B'; // Slight warning
+                                                                                else color = '#EF4444'; // Danger
+                                                                            }
+                                                                            return <Cell key={`cell-${index}`} fill={color} stroke="rgba(0,0,0,0)" />;
+                                                                        })}
+                                                                    </Pie>
+                                                                    <Tooltip
+                                                                        contentStyle={{
+                                                                            backgroundColor: theme === 'dark' ? 'rgba(20, 20, 20, 0.9)' : 'rgba(255, 255, 255, 0.9)',
+                                                                            borderColor: theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
+                                                                            borderRadius: '8px',
+                                                                            fontSize: '12px',
+                                                                            padding: '8px 10px'
+                                                                        }}
+                                                                        itemStyle={{ margin: '0', padding: '0', fontWeight: 500, color: theme === 'dark' ? '#fff' : '#111827' }}
+                                                                        labelStyle={{
+                                                                            margin: '0 0 3px 0',
+                                                                            padding: '0',
+                                                                            fontWeight: 'bold',
+                                                                            color: theme === 'dark' ? '#D1D5DB' : '#374151'
+                                                                        }}
+                                                                        formatter={(value, name) => [`${currencySymbol}${value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })} (${(totalValue > 0 ? (value / totalValue) * 100 : 0).toFixed(1)}%)`, name]}
+                                                                    />
+                                                                </PieChart>
+                                                            </ResponsiveContainer>
+                                                        )}
+                                                    </div>
+                                                    <ChartLegend />
+
+                                                    {/* Footnote under chart */}
+                                                    <div className={styles.chartFootnote}>
+                                                        <h5 style={{ margin: '0 0 0.25rem 0', fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-secondary)', letterSpacing: '0.05em', textAlign: 'center' }}>Sector Limits</h5>
+                                                        <div className={styles.footnoteList}>
+                                                            {Object.entries(SECTOR_LIMITS)
+                                                                .filter(([k]) => !['Information Technology', 'Financials', 'Consumer Non-Cyclical'].includes(k)) // Filter duplicates/legacy
+                                                                .map(([key, val]) => (
+                                                                    <div key={key} style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', background: 'rgba(255,255,255,0.03)', padding: '2px 6px', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                                                        {key === 'default' ? 'Others' : key}: <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>{val}%</span>
+                                                                    </div>
+                                                                ))}
+                                                        </div>
+                                                    </div>
+                                                    {/* RIGHT COLUMN: List */}
+                                                    <div className={styles.allocationList}>
+                                                        {[...sectorData].sort((a, b) => b.value - a.value).map((entry, index) => {
+                                                            const pct = totalValue > 0 ? (entry.value / totalValue) * 100 : 0;
+                                                            const limit = SECTOR_LIMITS[entry.name] || SECTOR_LIMITS.default;
+                                                            let color = '#10B981';
+                                                            if (pct > limit) {
+                                                                if (pct <= limit + 2) color = '#F59E0B';
+                                                                else color = '#EF4444';
+                                                            }
+                                                            return (
+                                                                <div key={index} className={styles.allocationItem}>
+                                                                    <div className={styles.allocationNameGroup}>
+                                                                        <div className={styles.allocationColorDot} style={{ backgroundColor: color }}></div>
+                                                                        <span className={styles.allocationName}>{entry.name}</span>
+                                                                    </div>
+                                                                    <div className={styles.allocationStats}>
+                                                                        <span className={styles.allocationAmount}>{currencySymbol}{entry.value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
+                                                                        <span className={styles.allocationPct}>{pct.toFixed(1)}%</span>
+                                                                    </div>
                                                                 </div>
-                                                                <div className={styles.allocationStats}>
-                                                                    <span className={styles.allocationAmount}>{currencySymbol}{entry.value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
-                                                                    <span className={styles.allocationPct}>{pct.toFixed(1)}%</span>
-                                                                </div>
-                                                            </div>
-                                                        );
-                                                    })}
+                                                            );
+                                                        })}
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        </>
-                                    )}
-                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                )}
                             </div>
-                        </FluidCard >
+                        </FluidCard>
+
 
                         {/* Card 2.5: AI Analysis */}
-                        < FluidCard >
+
+                        <FluidCard>
                             <div className={styles.portfolioCard}>
                                 <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                     <h2 style={{ fontSize: '1.5rem', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>AI Portfolio Analysis</h2>
                                     <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                        {analysis && (
-                                            <button
-                                                className={styles.tableActionButton}
-                                                onClick={async () => {
-                                                    await clearAnalysis();
-                                                    setUserClearedAnalysis(true);
-                                                }}
-                                                title="Clear Analysis"
-                                                style={{ color: '#EF4444', borderColor: '#EF4444' }}
-                                            >
-                                                <Trash2 size={18} />
-                                            </button>
+                                        {openCards.ai && (
+                                            <>
+                                                {analysis && (
+                                                    <button
+                                                        className={styles.tableActionButton}
+                                                        onClick={async () => {
+                                                            await clearAnalysis();
+                                                            setUserClearedAnalysis(true);
+                                                        }}
+                                                        title="Clear Analysis"
+                                                        style={{ color: '#EF4444', borderColor: '#EF4444' }}
+                                                    >
+                                                        <Trash2 size={18} />
+                                                    </button>
+                                                )}
+                                                <button
+                                                    className={styles.tableActionButton}
+                                                    onClick={() => handleAnalyzePortfolio(true)}
+                                                    disabled={analyzing}
+                                                    title="Ask Gemini"
+                                                >
+                                                    {analyzing ? (
+                                                        <div className={styles.spinner} style={{ width: 18, height: 18 }}></div>
+                                                    ) : (
+                                                        <div style={{ fontSize: 20 }}>✨</div>
+                                                    )}
+                                                </button>
+                                            </>
                                         )}
                                         <button
                                             className={styles.tableActionButton}
-                                            onClick={() => handleAnalyzePortfolio(true)}
-                                            disabled={analyzing}
-                                            title="Ask Gemini"
+                                            onClick={() => toggleCard('ai')}
+                                            title={openCards.ai ? "Collapse" : "Expand"}
                                         >
-                                            {analyzing ? (
-                                                <div className={styles.spinner} style={{ width: 18, height: 18 }}></div>
-                                            ) : (
-                                                <div style={{ fontSize: 20 }}>✨</div>
-                                            )}
+                                            {openCards.ai ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
                                         </button>
                                     </div>
                                 </div>
 
-                                {analysis && (
-                                    <div className={styles.analysisContent} style={{
-                                        marginTop: '1rem',
-                                        padding: '1.5rem',
-                                        backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                                        borderRadius: '12px',
-                                        border: '1px solid rgba(255, 255, 255, 0.1)',
-                                        color: 'var(--text-primary)',
-                                        lineHeight: '1.6'
-                                    }}>
-                                        {analysis.split('\n').map((line, index) => {
-                                            const cleanLine = line.trim();
-                                            if (!cleanLine) return <div key={index} style={{ height: '0.5rem' }} />;
+                                {openCards.ai && (
+                                    <div style={{ display: 'contents' }}>
+                                        {analysis && (
+                                            <div className={styles.analysisContent} style={{
+                                                marginTop: '1rem',
+                                                padding: '1.5rem',
+                                                backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                                                borderRadius: '12px',
+                                                border: '1px solid rgba(255, 255, 255, 0.1)',
+                                                color: 'var(--text-primary)',
+                                                lineHeight: '1.6'
+                                            }}>
+                                                {analysis.split('\n').map((line, index) => {
+                                                    const cleanLine = line.trim();
+                                                    if (!cleanLine) return <div key={index} style={{ height: '0.5rem' }} />;
 
-                                            // Helper to bold text inside ** **
-                                            const renderBold = (text) => {
-                                                const parts = text.split(/(\*\*.*?\*\*)/g);
-                                                return parts.map((part, i) => {
-                                                    if (part.startsWith('**') && part.endsWith('**')) {
-                                                        return <strong key={i} style={{ color: '#60a5fa' }}>{part.slice(2, -2)}</strong>;
+                                                    // Helper to bold text inside ** **
+                                                    const renderBold = (text) => {
+                                                        const parts = text.split(/(\*\*.*?\*\*)/g);
+                                                        return parts.map((part, i) => {
+                                                            if (part.startsWith('**') && part.endsWith('**')) {
+                                                                return <strong key={i} style={{ color: '#60a5fa' }}>{part.slice(2, -2)}</strong>;
+                                                            }
+                                                            return part;
+                                                        });
+                                                    };
+
+                                                    // Headers
+                                                    if (cleanLine.match(/^\d+\.\s+\*\*/) || (cleanLine.startsWith('**') && cleanLine.endsWith(':'))) {
+                                                        return (
+                                                            <h4 key={index} style={{
+                                                                margin: '1rem 0 0.5rem 0',
+                                                                fontSize: '1.1rem',
+                                                                color: 'var(--text-primary)',
+                                                                borderBottom: '1px solid rgba(255,255,255,0.1)',
+                                                                paddingBottom: '0.25rem'
+                                                            }}>
+                                                                {renderBold(cleanLine.replace(/^\d+\.\s*/, '').replace(/:$/, ''))}
+                                                            </h4>
+                                                        );
                                                     }
-                                                    return part;
-                                                });
-                                            };
 
-                                            // Headers
-                                            if (cleanLine.match(/^\d+\.\s+\*\*/) || (cleanLine.startsWith('**') && cleanLine.endsWith(':'))) {
-                                                return (
-                                                    <h4 key={index} style={{
-                                                        margin: '1rem 0 0.5rem 0',
-                                                        fontSize: '1.1rem',
-                                                        color: 'var(--text-primary)',
-                                                        borderBottom: '1px solid rgba(255,255,255,0.1)',
-                                                        paddingBottom: '0.25rem'
-                                                    }}>
-                                                        {renderBold(cleanLine.replace(/^\d+\.\s*/, '').replace(/:$/, ''))}
-                                                    </h4>
-                                                );
-                                            }
+                                                    // List Items
+                                                    if (cleanLine.startsWith('- ') || cleanLine.startsWith('* ')) {
+                                                        return (
+                                                            <div key={index} style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.25rem', paddingLeft: '0.5rem' }}>
+                                                                <span style={{ color: '#60a5fa' }}>•</span>
+                                                                <span style={{ color: 'var(--text-secondary)' }}>{renderBold(cleanLine.slice(2))}</span>
+                                                            </div>
+                                                        );
+                                                    }
 
-                                            // List Items
-                                            if (cleanLine.startsWith('- ') || cleanLine.startsWith('* ')) {
-                                                return (
-                                                    <div key={index} style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.25rem', paddingLeft: '0.5rem' }}>
-                                                        <span style={{ color: '#60a5fa' }}>•</span>
-                                                        <span style={{ color: 'var(--text-secondary)' }}>{renderBold(cleanLine.slice(2))}</span>
-                                                    </div>
-                                                );
-                                            }
-
-                                            return <p key={index} style={{ margin: '0.25rem 0', color: 'var(--text-secondary)' }}>{renderBold(cleanLine)}</p>;
-                                        })}
-                                    </div>
-                                )}
-                                {!analysis && !analyzing && (
-                                    <div style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: '2rem', border: '1px dashed rgba(255, 255, 255, 0.2)', borderRadius: '12px' }}>
-                                        Get AI-powered insights and improvement suggestions for your portfolio.
+                                                    return <p key={index} style={{ margin: '0.25rem 0', color: 'var(--text-secondary)' }}>{renderBold(cleanLine)}</p>;
+                                                })}
+                                            </div>
+                                        )}
+                                        {!analysis && !analyzing && (
+                                            <div style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: '2rem', border: '1px dashed rgba(255, 255, 255, 0.2)', borderRadius: '12px' }}>
+                                                Get AI-powered insights and improvement suggestions for your portfolio.
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                             </div>
-                        </FluidCard >
+                        </FluidCard>
+
 
                         {/* Card 3: Holdings Table */}
-                        < FluidCard >
+
+                        <FluidCard>
                             <div className={styles.portfolioCard}>
                                 <div className={styles.tableCard} style={{ background: 'transparent', border: 'none', boxShadow: 'none' }}>
-                                    <div className={`${styles.tableHeader} ${menuOpenHoldings && isMobile ? styles.expandedMenu : ''}`}>
-                                        <h2 className={styles.title}>Holdings</h2>
-                                        {isMobile ? (
-                                            menuOpenHoldings ? (
-                                                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                                                    <button className={styles.tableActionButton} onClick={() => setShowColumnModal(true)} title="Show/Hide Columns"><Eye size={18} /> </button>
-                                                    <button className={styles.tableActionButton} onClick={handleCopyClick} title="Copy from Main Portfolio"><RefreshCw size={18} /> </button>
-                                                    <button className={styles.tableActionButton} onClick={handleClearAll} title="Clear All Holdings"><Trash2 size={18} /> </button>
-                                                    <button className={styles.tableActionButton} onClick={() => setShowAddModal(true)} title="Add Stock"><Plus size={18} /> </button>
-                                                    <button className={styles.tableActionButton} onClick={() => setMenuOpenHoldings(false)} title="Close Menu"><X size={18} /> </button>
-                                                </div>
-                                            ) : (
-                                                <button className={styles.tableActionButton} onClick={() => setMenuOpenHoldings(true)} title="Actions Menu"><Menu size={18} /> </button>
-                                            )
-                                        ) : (
-                                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                    <div style={{ marginBottom: '1rem' }}>
+                                        <div className={styles.tableHeader} style={{ marginBottom: menuOpenHoldings && isMobile ? '0.5rem' : '0' }}>
+                                            <h2 style={{ fontSize: '1.5rem', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>Holdings</h2>
+                                            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                                {/* Desktop Buttons */}
+                                                {!isMobile && openCards.holdings && (
+                                                    <>
+                                                        <button className={styles.tableActionButton} onClick={() => setShowColumnModal(true)} title="Show/Hide Columns"><Eye size={18} /> </button>
+                                                        <button className={styles.tableActionButton} onClick={handleCopyClick} title="Copy from Main Portfolio"><RefreshCw size={18} /> </button>
+                                                        <button className={styles.tableActionButton} onClick={handleClearAll} title="Clear All Holdings"><Trash2 size={18} /> </button>
+                                                        <button className={styles.tableActionButton} onClick={() => setShowAddModal(true)} title="Add Stock"><Plus size={18} /> </button>
+                                                    </>
+                                                )}
+
+                                                {/* Mobile Menu Toggle (Menu / X) */}
+                                                {isMobile && openCards.holdings && (
+                                                    <button
+                                                        className={styles.tableActionButton}
+                                                        onClick={() => setMenuOpenHoldings(!menuOpenHoldings)}
+                                                        title={menuOpenHoldings ? "Close Menu" : "Actions Menu"}
+                                                    >
+                                                        {menuOpenHoldings ? <X size={18} /> : <Menu size={18} />}
+                                                    </button>
+                                                )}
+
+                                                {/* Collapse/Expand Toggle (Always Fixed) */}
+                                                <button
+                                                    className={styles.tableActionButton}
+                                                    onClick={() => toggleCard('holdings')}
+                                                    title={openCards.holdings ? "Collapse" : "Expand"}
+                                                >
+                                                    {openCards.holdings ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {/* Mobile Expanded Menu Buttons (Second Row) */}
+                                        {isMobile && menuOpenHoldings && openCards.holdings && (
+                                            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', animation: 'fadeIn 0.3s' }}>
                                                 <button className={styles.tableActionButton} onClick={() => setShowColumnModal(true)} title="Show/Hide Columns"><Eye size={18} /> </button>
                                                 <button className={styles.tableActionButton} onClick={handleCopyClick} title="Copy from Main Portfolio"><RefreshCw size={18} /> </button>
                                                 <button className={styles.tableActionButton} onClick={handleClearAll} title="Clear All Holdings"><Trash2 size={18} /> </button>
@@ -2154,33 +2226,36 @@ const TestPortfolioPage = () => {
                                         )}
                                     </div>
 
-                                    <div className={styles.tableScroll}>
-                                        <table className={styles.table}>
-                                            <thead>
-                                                <tr>
-                                                    {!hiddenColumns.includes('ticker') && <th>Ticker</th>}
-                                                    {!hiddenColumns.includes('category') && <th>Category</th>}
-                                                    {!hiddenColumns.includes('sector') && <th>Sector</th>}
-                                                    {!hiddenColumns.includes('beta') && <th>Beta</th>}
-                                                    {!hiddenColumns.includes('initAmt') && <th>Cost Basis ({currency})</th>}
-                                                    {!hiddenColumns.includes('invDate') && <th>Cost Basis Date</th>}
-                                                    {!hiddenColumns.includes('price') && <th>Price ({currency})</th>}
-                                                    {!hiddenColumns.includes('position') && <th>Position</th>}
-                                                    {!hiddenColumns.includes('totalValue') && <th>Total Value ({currency})</th>}
-                                                    {!hiddenColumns.includes('weight') && <th>Weight %</th>}
-                                                    {!hiddenColumns.includes('return') && <th>Return %</th>}
-                                                    {!hiddenColumns.includes('growth') && <th>5Y Growth</th>}
-                                                    <th>Actions</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {displayList && displayList.map(item => renderRow(item))}
-                                            </tbody>
-                                        </table>
-                                    </div>
+                                    {openCards.holdings && (
+                                        <div className={styles.tableScroll}>
+                                            <table className={styles.table}>
+                                                <thead>
+                                                    <tr>
+                                                        {!hiddenColumns.includes('ticker') && <th>Ticker</th>}
+                                                        {!hiddenColumns.includes('category') && <th>Category</th>}
+                                                        {!hiddenColumns.includes('sector') && <th>Sector</th>}
+                                                        {!hiddenColumns.includes('beta') && <th>Beta</th>}
+                                                        {!hiddenColumns.includes('initAmt') && <th>Cost Basis ({currency})</th>}
+                                                        {!hiddenColumns.includes('invDate') && <th>Cost Basis Date</th>}
+                                                        {!hiddenColumns.includes('price') && <th>Price ({currency})</th>}
+                                                        {!hiddenColumns.includes('position') && <th>Position</th>}
+                                                        {!hiddenColumns.includes('totalValue') && <th>Total Value ({currency})</th>}
+                                                        {!hiddenColumns.includes('weight') && <th>Weight %</th>}
+                                                        {!hiddenColumns.includes('return') && <th>Return %</th>}
+                                                        {!hiddenColumns.includes('growth') && <th>5Y Growth</th>}
+                                                        <th>Actions</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {displayList && displayList.map(item => renderRow(item))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </FluidCard>
+
                     </>
                 )}
             </div>
