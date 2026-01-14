@@ -670,7 +670,7 @@ const OverviewCard = ({ moatStatusLabel, isMoatEvaluating, currency = 'USD', cur
                         <div className={styles.chartWrapper}>
                             {shouldRenderChart ? (
                                 <ResponsiveContainer width="100%" height={chartHeight}>
-                                    <ComposedChart data={processedChartData} margin={{ top: 10, right: 10, left: -30, bottom: 0 }}>
+                                    <ComposedChart data={processedChartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                                         <defs>
                                             <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
                                                 <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3} />
@@ -688,6 +688,7 @@ const OverviewCard = ({ moatStatusLabel, isMoatEvaluating, currency = 'USD', cur
                                         <YAxis
                                             domain={['auto', 'auto']}
                                             stroke={chartColors.text}
+                                            width={50}
                                             tick={{ fontSize: 10, fill: chartColors.text }}
                                             tickFormatter={(val) => `${currencySymbol}${val.toFixed(2)}`}
                                         />

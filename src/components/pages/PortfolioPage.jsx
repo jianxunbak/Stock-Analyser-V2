@@ -101,7 +101,7 @@ const CustomSelect = ({ value, onChange, options, style, onDelete, onEdit, place
                 position: 'absolute',
                 top: `${coords.top}px`,
                 left: `${coords.left}px`,
-                width: `${coords.width * 1.5}px`
+                width: `${Math.max(coords.width * 1.5, 230)}px`
             } : {}}
         >
             <div className={styles.customSelectOptionsList}>
@@ -437,7 +437,7 @@ const TypeSelector = ({ value, onChange, style }) => {
             {isOpen && createPortal(
                 isMobile ? (
                     <div className={styles.mobileModalOverlay} onClick={() => setIsOpen(false)}>
-                        <div className={styles.mobileModalContent} onClick={(e) => e.stopPropagation()}>
+                        <div className={styles.mobileModalContent} onClick={(e) => e.stopPropagation()} style={{ minHeight: 'auto' }}>
                             <div className={styles.typeSelectorMenu} style={{ position: 'relative', top: 'auto', left: 'auto', transform: 'none', width: '100%', marginBottom: 0 }}>
                                 <div className={styles.typeOption} onClick={() => { onChange('main'); setIsOpen(false); }}>Main</div>
                                 <div className={styles.typeOption} onClick={() => { onChange('test'); setIsOpen(false); }}>Test</div>
@@ -494,7 +494,9 @@ const PortfolioPage = () => {
         deletePortfolio,
         clearAnalysis,
         copyItemsFromPortfolio,
-        clearPortfolio
+        clearPortfolio,
+        comparisonStocks,
+        updateComparisonStocks
     } = usePortfolio(currentPortfolioId);
 
     // Initial load: pick the first portfolio if nothing is selected or stored ID is invalid
@@ -531,6 +533,7 @@ const PortfolioPage = () => {
     const [showDeleteStockModal, setShowDeleteStockModal] = useState(false);
     const [stockToDelete, setStockToDelete] = useState(null);
     const [showClearPortfolioModal, setShowClearPortfolioModal] = useState(false);
+    const [showClearAnalysisModal, setShowClearAnalysisModal] = useState(false);
 
     const handleClearAll = () => {
         if (!portfolio || portfolio.length === 0) return;
@@ -540,6 +543,12 @@ const PortfolioPage = () => {
     const handleConfirmClearAll = async () => {
         await clearPortfolio();
         setShowClearPortfolioModal(false);
+    };
+
+    const handleConfirmClearAnalysis = async () => {
+        await clearAnalysis();
+        setUserClearedAnalysis(true);
+        setShowClearAnalysisModal(false);
     };
 
     const handleDeleteStockClick = (item) => {
@@ -677,7 +686,7 @@ const PortfolioPage = () => {
 
     // Comparison State
     const [comparisonTicker, setComparisonTicker] = useState('');
-    const [comparisonStocks, setComparisonStocks] = useState([]);
+    // comparisonStocks now managed by usePortfolio hook
     const [error, setError] = useState(null);
     const [showErrorModal, setShowErrorModal] = useState(false);
 
@@ -691,8 +700,9 @@ const PortfolioPage = () => {
         // Clear local UI states when portfolio changes
         setUserClearedAnalysis(false);
         setTwrData(null);
-        setComparisonStocks([]);
+        // setComparisonStocks([]); // Now handled by hook data stream
         setLiveData({}); // Clear old live data
+        fetchedTickersRef.current.clear(); // Clear fetched cache so we re-fetch for new portfolio if needed
         setIsLoadingData(false);
     }, [currentPortfolioId]);
 
@@ -884,7 +894,8 @@ const PortfolioPage = () => {
         }));
 
         setIsLoadingData(false);
-    }, [portfolio, liveData, isLoadingData]); // Added isLoadingData to dependencies
+        setIsLoadingData(false);
+    }, [portfolio, isLoadingData]); // Removed liveData to prevent loops
 
     // Initial Load
     useEffect(() => {
@@ -1421,7 +1432,7 @@ const PortfolioPage = () => {
                                     value={editValues.category}
                                     onChange={(val) => setEditValues({ ...editValues, category: val })}
                                     options={['Core', 'Growth', 'Compounder', 'Defensive', 'Speculative']}
-                                    triggerClassName={styles.editableDateTrigger}
+                                    triggerClassName={styles.editableSelectTrigger}
                                     isMobile={isMobile}
                                     portalTarget={document.body}
                                     style={{ color: 'var(--text-primary)', WebkitTextFillColor: 'var(--text-primary)' }}
@@ -1449,7 +1460,7 @@ const PortfolioPage = () => {
                                     onChange={(val) => setEditValues({ ...editValues, purchaseDate: val })}
                                     triggerClassName={styles.editableDateTrigger}
                                     isMobile={isMobile}
-                                    style={{ color: 'var(--text-primary)', WebkitTextFillColor: 'var(--text-primary)' }}
+                                    style={{ color: 'var(--text-primary)', WebkitTextFillColor: 'var(--text-primary)', background: 'transparent', borderRadius: '1.5rem' }}
                                 />
                             ) : (item.purchaseDate || 'N/A')}
                         </td>
@@ -1595,7 +1606,7 @@ const PortfolioPage = () => {
                 color = `#${Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0')}`;
             }
 
-            setComparisonStocks([...comparisonStocks, { ticker: comparisonTicker.toUpperCase(), data: processedData, color }]);
+            updateComparisonStocks([...comparisonStocks, { ticker: comparisonTicker.toUpperCase(), data: processedData, color }]);
             setComparisonTicker('');
 
         } catch (e) {
@@ -1606,7 +1617,7 @@ const PortfolioPage = () => {
     };
 
     const removeComparison = (ticker) => {
-        setComparisonStocks(comparisonStocks.filter(s => s.ticker !== ticker));
+        updateComparisonStocks(comparisonStocks.filter(s => s.ticker !== ticker));
     };
 
     // Merge Data for Chart
@@ -1786,14 +1797,14 @@ const PortfolioPage = () => {
                     <FluidCard>
                         <div className={styles.portfolioCard}>
                             {/* Header Row: Title/Selector + Actions */}
-                            <div className={`${styles.headerRow} ${menuOpen && isMobile ? styles.expandedMenu : ''}`} style={{
+                            <div className={`${styles.headerRow} ${(menuOpen || isCreating || isRenaming) && isMobile ? styles.expandedMenu : ''}`} style={{
                                 marginBottom: (portfolioList.length === 0 && !isCreating) ? '0' : '1.5rem',
                                 borderBottom: (portfolioList.length === 0 && !isCreating) ? 'none' : '1px solid rgba(255,255,255,0.05)',
                                 paddingBottom: (portfolioList.length === 0 && !isCreating) ? '0' : '1rem',
                             }}>
                                 {/* Mobile Menu Logic */}
                                 {isMobile ? (
-                                    menuOpen ? (
+                                    menuOpen || isCreating || isRenaming ? (
                                         /* EXPANDED MOBILE: Row 1 Actions, Row 2 Title */
                                         <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -2402,17 +2413,14 @@ const PortfolioPage = () => {
                             <FluidCard>
                                 <div className={styles.portfolioCard}>
                                     <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <h2 style={{ fontSize: '1.5rem', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>AI Portfolio Analysis</h2>
+                                        <h2 style={{ fontSize: '1.5rem', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>AI Analysis</h2>
                                         <div style={{ display: 'flex', gap: '0.5rem' }}>
                                             {openCards.ai && (
                                                 <>
                                                     {analysis && (
                                                         <button
                                                             className={styles.tableActionButton}
-                                                            onClick={async () => {
-                                                                await clearAnalysis();
-                                                                setUserClearedAnalysis(true);
-                                                            }}
+                                                            onClick={() => setShowClearAnalysisModal(true)}
                                                             title="Clear Analysis"
                                                             style={{ color: '#EF4444', borderColor: '#EF4444' }}
                                                         >
@@ -2516,6 +2524,36 @@ const PortfolioPage = () => {
                                 <div className={styles.portfolioCard}>
                                     <div className={styles.tableCard} style={{ background: 'transparent', border: 'none', boxShadow: 'none' }}>
                                         <div style={{ marginBottom: '1rem' }}>
+                                            {/* Mobile Expanded Menu Buttons (Above Title) */}
+                                            {isMobile && menuOpenHoldings && openCards.holdings && (
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', animation: 'fadeIn 0.3s' }}>
+                                                    {/* LEFT: Actions */}
+                                                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                                        <button className={styles.tableActionButton} onClick={() => setShowColumnModal(true)} title="Show/Hide Columns"><Eye size={18} /> </button>
+                                                        <button className={styles.tableActionButton} onClick={handleCopyClick} title="Copy from Main Portfolio"><RefreshCw size={18} /> </button>
+                                                        <button className={styles.tableActionButton} onClick={handleClearAll} title="Clear All Holdings"><Trash2 size={18} /> </button>
+                                                        <button className={styles.tableActionButton} onClick={() => setShowAddModal(true)} title="Add Stock"><Plus size={18} /> </button>
+                                                    </div>
+                                                    {/* RIGHT: Close Menu & Collapse */}
+                                                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                                        <button
+                                                            className={styles.tableActionButton}
+                                                            onClick={() => setMenuOpenHoldings(false)}
+                                                            title="Close Menu"
+                                                        >
+                                                            <X size={18} />
+                                                        </button>
+                                                        <button
+                                                            className={styles.tableActionButton}
+                                                            onClick={() => toggleCard('holdings')}
+                                                            title="Collapse"
+                                                        >
+                                                            <ChevronUp size={20} />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
+
                                             <div className={styles.tableHeader} style={{ marginBottom: menuOpenHoldings && isMobile ? '0.5rem' : '0' }}>
                                                 <h2 style={{ fontSize: '1.5rem', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>Holdings</h2>
                                                 <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
@@ -2529,37 +2567,30 @@ const PortfolioPage = () => {
                                                         </>
                                                     )}
 
-                                                    {/* Mobile Menu Toggle (Menu / X) */}
-                                                    {isMobile && openCards.holdings && (
+                                                    {/* Mobile Menu Toggle (Menu / X) - Only show when NOT expanded (Hamburger) */}
+                                                    {/* If expanded, we show the top bar instead. So here we only show Hamburger if !menuOpenHoldings */}
+                                                    {isMobile && openCards.holdings && !menuOpenHoldings && (
                                                         <button
                                                             className={styles.tableActionButton}
-                                                            onClick={() => setMenuOpenHoldings(!menuOpenHoldings)}
-                                                            title={menuOpenHoldings ? "Close Menu" : "Actions Menu"}
+                                                            onClick={() => setMenuOpenHoldings(true)}
+                                                            title="Actions Menu"
                                                         >
-                                                            {menuOpenHoldings ? <X size={18} /> : <Menu size={18} />}
+                                                            <Menu size={18} />
                                                         </button>
                                                     )}
 
-                                                    {/* Collapse/Expand Toggle (Always Fixed) */}
-                                                    <button
-                                                        className={styles.tableActionButton}
-                                                        onClick={() => toggleCard('holdings')}
-                                                        title={openCards.holdings ? "Collapse" : "Expand"}
-                                                    >
-                                                        {openCards.holdings ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-                                                    </button>
+                                                    {/* Collapse/Expand Toggle - Hide when expanded (moved to top bar) */}
+                                                    {(!isMobile || !menuOpenHoldings) && (
+                                                        <button
+                                                            className={styles.tableActionButton}
+                                                            onClick={() => toggleCard('holdings')}
+                                                            title={openCards.holdings ? "Collapse" : "Expand"}
+                                                        >
+                                                            {openCards.holdings ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                                                        </button>
+                                                    )}
                                                 </div>
                                             </div>
-
-                                            {/* Mobile Expanded Menu Buttons (Second Row) */}
-                                            {isMobile && menuOpenHoldings && openCards.holdings && (
-                                                <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', animation: 'fadeIn 0.3s' }}>
-                                                    <button className={styles.tableActionButton} onClick={() => setShowColumnModal(true)} title="Show/Hide Columns"><Eye size={18} /> </button>
-                                                    <button className={styles.tableActionButton} onClick={handleCopyClick} title="Copy from Main Portfolio"><RefreshCw size={18} /> </button>
-                                                    <button className={styles.tableActionButton} onClick={handleClearAll} title="Clear All Holdings"><Trash2 size={18} /> </button>
-                                                    <button className={styles.tableActionButton} onClick={() => setShowAddModal(true)} title="Add Stock"><Plus size={18} /> </button>
-                                                </div>
-                                            )}
                                         </div>
 
                                         {openCards.holdings && (
@@ -2624,6 +2655,15 @@ const PortfolioPage = () => {
                     <div className={styles.modalFooter} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', width: '100%' }}>
                         <button className={styles.secondaryButton} onClick={() => setShowAddModal(false)} style={{ width: '100%' }}>Close</button>
                         <button className={styles.submitBtn} onClick={handleAddStock} style={{ marginTop: 0, width: '100%' }}>Add Position</button>
+                    </div>
+                }
+            />
+            <Modal isOpen={showClearAnalysisModal} onClose={() => setShowClearAnalysisModal(false)} title="Clear Analysis"
+                message="Are you sure you want to clear the AI analysis? This cannot be undone."
+                footer={
+                    <div className={styles.modalFooter} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', width: '100%' }}>
+                        <button className={styles.secondaryButton} onClick={() => setShowClearAnalysisModal(false)} style={{ width: '100%' }}>Cancel</button>
+                        <button className={`${styles.submitBtn} ${styles.dangerBtn}`} onClick={handleConfirmClearAnalysis} style={{ marginTop: 0, width: '100%' }}>Clear Analysis</button>
                     </div>
                 }
             />

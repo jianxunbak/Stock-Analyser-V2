@@ -49,8 +49,7 @@
 .card:hover {
     outline: none;
     background: transparent;
-    transform: translateY(-10px);
-    transform: scale(1.01);
+    transform: translateY(-10px) scale(1.01);
     border-radius: 60px;
 }
 
@@ -209,8 +208,7 @@
 .buttonLowActive:hover {
     outline: none;
     border: 1px solid transparent;
-    transform: translateY(-10px);
-    transform: scaleY(1.2);
+    transform: translateY(-10px) scaleY(1.2);
     border-radius: 10px;
 }
 
@@ -468,10 +466,8 @@
 
 .aiButton:hover {
     opacity: 0.9;
-    transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(168, 85, 247, 0.3);
-    transform: translateY(-10px);
-    transform: scaleY(1.1);
+    transform: translateY(-10px) scaleY(1.1);
     border-radius: 10px;
 }
 

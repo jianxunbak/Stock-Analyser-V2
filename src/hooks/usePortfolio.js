@@ -10,9 +10,63 @@ export const usePortfolio = (portfolioId) => {
     const [portfolio, setPortfolio] = useState([]);
     const [portfolioList, setPortfolioList] = useState([]);
     const [analysis, setAnalysis] = useState('');
+    const [comparisonStocks, setComparisonStocks] = useState([]);
     const [loading, setLoading] = useState(true);
     const [listLoading, setListLoading] = useState(true);
     const { currentUser } = useAuth();
+
+    // 2. Fetch Data for CURRENT Portfolio
+    useEffect(() => {
+        if (!currentUser || !portfolioId) {
+            setPortfolio([]);
+            setAnalysis('');
+            setComparisonStocks([]);
+            setLoading(false);
+            return;
+        }
+
+        setLoading(true);
+        // Clear previous data while loading new portfolio to prevent stale data flash
+        setPortfolio([]);
+        setAnalysis('');
+        setComparisonStocks([]);
+
+        const docRef = doc(db, 'users', currentUser.uid, 'test_portfolios', portfolioId);
+        const unsubscribe = onSnapshot(docRef, (docSnap) => {
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                setAnalysis(data.analysis || '');
+                setPortfolio(data.portfolio || []);
+                setComparisonStocks(data.comparisonStocks || []);
+            } else {
+                setAnalysis('');
+                setPortfolio([]);
+                setComparisonStocks([]);
+            }
+            setLoading(false);
+        }, (error) => {
+            console.error("Error fetching portfolio data:", error);
+            setLoading(false);
+        });
+
+        return () => unsubscribe();
+    }, [currentUser, portfolioId]);
+
+    // ... (existing functions)
+
+    const updateComparisonStocks = async (newStocks) => {
+        if (!currentUser || !portfolioId) return;
+        try {
+            const docRef = doc(db, 'users', currentUser.uid, 'test_portfolios', portfolioId);
+            await updateDoc(docRef, {
+                comparisonStocks: newStocks,
+                updatedAt: new Date().toISOString()
+            });
+        } catch (error) {
+            console.error("Error updating comparison stocks:", error);
+        }
+    };
+
 
     // --- Migration Logic ---
     useEffect(() => {
@@ -302,6 +356,8 @@ export const usePortfolio = (portfolioId) => {
         deletePortfolio,
         clearAnalysis,
         copyItemsFromPortfolio,
-        clearPortfolio
+        clearPortfolio,
+        comparisonStocks,
+        updateComparisonStocks
     };
 };

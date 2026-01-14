@@ -10,8 +10,11 @@
     background-attachment: fixed;
     color: var(--text-primary);
     padding: 0 1rem 6rem 1rem;
-    /* overflow-x: hidden; - Removed to allow position: sticky to work */
-    /* Prevent horizontal scroll */
+    outline: none;
+}
+
+.container * {
+    outline: none;
 }
 
 [data-theme="light"] .container {

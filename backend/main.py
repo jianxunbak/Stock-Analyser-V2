@@ -899,6 +899,24 @@ def get_stock_data(ticker: str):
                     
                     # Mark source for frontend debugging
                     payload['_source'] = 'FIREBASE'
+                    
+                    # --- CACHE PATCH: Ensure 200MA is present ---
+                    overview = payload.get('overview', {})
+                    if 'twoHundredDayAverage' not in overview or overview['twoHundredDayAverage'] is None:
+                        try:
+                            history_list = payload.get('history', [])
+                            if len(history_list) >= 200:
+                                # history_list is [{date, close, ...}, ...]
+                                # We need prices for the last 200 days
+                                prices = [h['close'] for h in history_list if 'close' in h]
+                                if len(prices) >= 200:
+                                    ma200 = sum(prices[-200:]) / 200
+                                    overview['twoHundredDayAverage'] = ma200
+                                    print(f"DEBUG: Patched cached {ticker} with calculated 200MA: {ma200}")
+                        except Exception as patch_e:
+                            print(f"WARNING: Failed to patch 200MA for cached {ticker}: {patch_e}")
+                    # --------------------------------------------
+
                     return payload
                 else:
                     print(f"DEBUG: Cache expired for {ticker}, refreshing...")
@@ -1840,7 +1858,11 @@ def get_stock_data(ticker: str):
         print(f"--- TOTAL TIME FOR {ticker}: {time.time() - start_time:.2f}s ---")
         final_response = {
             "_source": "YFINANCE",
-            "overview": {**overview, "ceo": ceo},
+            "overview": {
+                **overview, 
+                "ceo": ceo,
+                "twoHundredDayAverage": float(history["SMA_200"].iloc[-1]) if "SMA_200" in history.columns and not history["SMA_200"].dropna().empty else info.get("twoHundredDayAverage")
+            },
             "growth": {
                 "revenueGrowth": revenue_growth,
                 "revenueHistory": revenue_history,
@@ -2571,16 +2593,23 @@ async def analyze_portfolio(request: PortfolioAnalysisRequest):
                 if debt > 0: cash_to_debt = f"{cash / debt:.2f}"
                 elif cash > 0: cash_to_debt = "High (Net Cash)"
             
+            ma200 = overview.get("twoHundredDayAverage")
+            price = val_data.get("currentPrice", 0)
+            ma_status = "N/A"
+            if ma200 and price:
+                ma_status = "Uptrend (Above 200MA)" if price > ma200 else "Downtrend (Below 200MA)"
+
             list_of_valuation_results.append({
                 "ticker": ticker,
                 "shares": shares,
                 "intrinsicValue": val_data.get("intrinsicValue", 0),
-                "currentPrice": val_data.get("currentPrice", 0),
+                "currentPrice": price,
                 "status": val_data.get("status", "Unknown"),
                 "peg": peg_str,
                 "beta": beta_str,
                 "growth_5y": growth_5y_str,
-                "cash_to_debt": cash_to_debt
+                "cash_to_debt": cash_to_debt,
+                "ma_status": ma_status
             })
         except Exception as e:
             print(f"Error fetching data for {ticker} for analysis: {e}")
@@ -2609,7 +2638,8 @@ async def analyze_portfolio(request: PortfolioAnalysisRequest):
         f"PEG: {res['peg']}, "
         f"Beta: {res['beta']}, "
         f"5Y Growth Est: {res['growth_5y']}, "
-        f"Cash/Debt: {res['cash_to_debt']})" 
+        f"Cash/Debt: {res['cash_to_debt']}, "
+        f"Momentum: {res.get('ma_status', 'N/A')})" 
         for res in list_of_valuation_results
     ])
     performance = request.metrics.get('totalTwr', 'N/A')
@@ -2619,10 +2649,10 @@ async def analyze_portfolio(request: PortfolioAnalysisRequest):
     missing_sectors = request.metrics.get('underweightSectors', 'Defensive or Emerging Markets')
 
     prompt = f"""
-    You are a Senior Quantitative Portfolio Manager and Fiduciary Strategist. 
+    You are a Senior Quantitative Portfolio Manager and Fiduciary Strategist specializing in "Quality Growth" (GARP) mandates.
     
     MANDATE: 
-    Optimize this portfolio for a 12-15% annual return (or higher) while minimizing downside volatility and concentration risk. 
+    Optimize this portfolio for a 12-15% annual return (CAGR) over a 5-10 year horizon. Prioritize "Business Quality" and "Valuation Discipline" over simple price volatility.
     
     PORTFOLIO DATA CORE (Inward):
     {holdings_str}
@@ -2632,36 +2662,47 @@ async def analyze_portfolio(request: PortfolioAnalysisRequest):
     - Sector Allocation: {sector_allocation_str}
     - Portfolio HHI (Concentration Index): {request.metrics.get('portfolioHHI', 'N/A')}
     
+    ADAM KHOO’S 7-STEP QUALITY FILTER:
+    1. Consistent Growth: 5-10 year track record of increasing Revenue, Net Income, Gross Profit Margins, Net Profit Margins,and Operating Cash Flow.
+    2. Wide Economic Moat: High Brand Power, Network Effect, or High Switching Costs.
+    3. Future Growth Drivers: Clear management catalyst for the next 5-10 years.
+    4. Operational Efficiency: ROE > 15% and ROIC > 12% consistently.
+    5. Conservative Debt: Debt-to-EBITDA < 3.0 and high Cash-to-Debt ratio, debt servicing ratio < 30%, Current Ratio > 1, declining Cash Conversion Cycle, Sales Revenue is greater than Accounts Receivables 
+    6. Valuation: Price must be at or below Intrinsic Value (PEG < 1.5 preferred) and have reached a support level.
+    7. Momentum: Stock must be in a Stage 2 Uptrend (Price > 200-day MA).
+
     OUTWARD LOOK (The Opportunity Set):
-    - Benchmark: S&P 500 (Beta 1.0)
+    - Benchmark: S&P 500 (10% CAGR) vs. Nasdaq-100 (15% CAGR).
     - Underweight Sectors: {underweight_sectors}
     - Risk-Free Rate Proxy (10Y Treasury): ~4.2%
-    - Target Return: 12-15% CAGR
+    - Target Return: 12-15% CAGR (High-conviction growth focus).
 
-    ANALYSIS REQUIREMENTS (Clinical & Data-Driven):
+    ANALYSIS REQUIREMENTS (Clinical & Data-Driven & Long-Term Compounding & Future Potential):
     1. **Allocation & Concentration Audit**: 
        - Evaluate the Sector Allocation and the Portfolio HHI. Is the portfolio "top-heavy" or over-concentrated in a few names or sectors? 
-       - If HHI is <1500, validate the diversification. If HHI is > 1500 (moderate) or > 2500 (high), flag concentration risk and suggest specific rebalancing to lower concentration risk.
+       - Identify "Single Point of Failure" risks. If one ticker or one sector accounts for >25% of the portfolio, flag it as a critical risk regardless of performance.
        - Assess if the weighted growth target is being skewed by 1-2 volatile tickers.
     
-    2. **Growth-to-Value Efficiency**: 
-       - Analyze the relationship between the Expected 5Y Growth and the average PEG Ratio of the holdings. 
-       - Are we paying too much for the 12-15% target? Identify any "Growth at any Price" (GAAP) risks where PEG > 2.0.
+    2. **The Quality-Growth Filter (The "Moat" Test)**: 
+       - Apply the 15% ROE and <3.0 Debt-to-EBITDA filter strictly to all holdings. 
+       - Identify "Value Traps": Tickers that look cheap but have declining margins or excessive debt.
+       - Flag "Growth at any Price" (GAAP) risks where PEG > 1.5. In Khoo’s VMI, we do not overpay for "hype."
 
-    3. **Holdings Audit (Inward)**: 
-       - **STAR**: Best-in-class PEG ratio with strong Cash-to-Debt ratios and >15% growth.
-       - **LAGGARD**: High Beta (>1.2) or high Debt-to-Equity that threatens the "Low Risk" mandate.
+    3. **Engine vs. Anchor (VMI Selection)**: 
+        - **ENGINES (The Queens)**: Refer to the "ADAM KHOO’S 7-STEP QUALITY FILTER" section for criteria.
+       - **ANCHORS (The Junk)**: Stocks that does not pass "ADAM KHOO’S 7-STEP QUALITY FILTER" criteria.
 
-    4. **The "Outward" Strategy**: 
-       - Define the **Selection Basis** for new entries in {underweight_sectors} that offer high 5Y growth projections but lower the overall Portfolio Beta. 
-       - Specify exactly what criteria (e.g., "Positive FCF Yield," "ROIC > 15%," or "Low Debt-to-EBITDA" or "Strong Pricing Power" or "Wide Economic moat", or "Low Debt-to-EBITDA") the user should look for to hit 12-15% growth safely.
-       - Based on this criteria, list 5 illustrative "Strategic Peer Alternatives" (tickers) that fit this profile today.
+    4. **Selection Basis for Underweight Sectors**: 
+       - Criteria: Define 4 non-negotiable VMI criteria (e.g., ROE > 15%, Debt-to-EBITDA < 2.5, Wide Moat, and Positive FCF Yield) to ensure new entries contribute to the 15% CAGR target.
+       - Define 4 non-negotiable criteria for new entries in {underweight_sectors} to ensure they contribute to the 15% target (e.g., Pricing Power, Net Debt/EBITDA < 2.0).
+       - Specify exactly what criteria (e.g., "Positive FCF Yield," "ROIC > 15%," "Strong Pricing Power," or "Wide Economic Moat", or "Low Debt-to-EBITDA") the user should look for to hit 12-15% growth safely over the long term.
+       - List 5 "Institutional Quality" peer alternatives (e.g., MSFT, GOOGL, MA, COST style) currently showing price strength.
 
     5. **Actionable Rebalancing Roadmap**: 
-       - **Trim/Exit Recommendation**: Identification of laggard or overvalued assets to reduce.
-       - **Tactical Entry Strategy**: Instruction on how to integrate scouted tickers to fix sector gaps.
-       - **Optimization Moves**: List 3 specific moves (e.g., "Shift 5% from Sector A to Sector B") to push the portfolio toward the Efficient Frontier.
-   
+       - **Trim/Exit Recommendation**:Trim winners only if they exceed 15% weight. Exit any position where the Moat is breached or Debt-to-EBITDA exceeds 3.0.
+       - **Tactical Entry Strategy**: Instruction on buying the dip *only* if the stock remains in a Stage 2 Uptrend.
+       - **Optimization Moves**: 3 moves to shift capital from "Anchors" to "Engines" to reach the 15% CAGR frontier.
+
     FORMAT RULES:
     - **DO NOT use markdown headers (like # or ##).** Use **bold** text for section titles instead.
     - Use standard bullet points (-) for list items. 
@@ -2669,7 +2710,7 @@ async def analyze_portfolio(request: PortfolioAnalysisRequest):
     - Ensure all text size and formatting is consistent and professional.
     - Use bullet points for all details. 
     - Ensure all text size and text format are consistent. 
-    - Keep it under 350 words.
+    - Keep it under 400 words.
     """
     
     payload = {

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Search, Star, Menu, X, LogOut, PieChart, TrendingUp, ArrowLeft, FlaskConical } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import ThemeToggle from './ThemeToggle';
+import Modal from './Modal';
 import styles from './TopNav.module.css';
 
 export const TopNavLogo = ({
@@ -46,6 +47,7 @@ export const TopNavActions = ({
     const navigate = useNavigate();
     const { currentUser } = useAuth();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
     const navRef = useRef(null);
 
     // Click outside to close menu
@@ -109,7 +111,7 @@ export const TopNavActions = ({
                             </button>
                         )}
                         {showLogoutBtn && (
-                            <button onClick={handleLogout} className={styles.watchlistButton} title="Log Out">
+                            <button onClick={() => setShowLogoutConfirm(true)} className={styles.watchlistButton} title="Log Out">
                                 <LogOut size={16} className={styles.starIcon} />
                             </button>
                         )}
@@ -156,7 +158,7 @@ export const TopNavActions = ({
                                 </button>
                             )}
                             {showLogoutBtn && (
-                                <button onClick={() => handleMobileAction(handleLogout)} className={styles.watchlistButton} title="Log Out">
+                                <button onClick={() => handleMobileAction(() => setShowLogoutConfirm(true))} className={styles.watchlistButton} title="Log Out">
                                     <LogOut size={16} className={styles.starIcon} />
                                 </button>
                             )}
@@ -164,6 +166,32 @@ export const TopNavActions = ({
                     )}
                 </div>
             )}
+
+            {/* Logout Confirmation Modal */}
+            <Modal
+                isOpen={showLogoutConfirm}
+                onClose={() => setShowLogoutConfirm(false)}
+                title="Sign Out"
+                content={
+                    <div style={{ padding: '1rem', color: 'var(--text-primary)' }}>
+                        <p>Are you sure you want to sign out?</p>
+                    </div>
+                }
+                footer={
+                    <div className={styles.modalFooter}>
+                        <button className={styles.modalBtn} onClick={() => setShowLogoutConfirm(false)}>Cancel</button>
+                        <button
+                            className={`${styles.modalBtn} ${styles.modalDangerBtn}`}
+                            onClick={() => {
+                                setShowLogoutConfirm(false);
+                                handleLogout();
+                            }}
+                        >
+                            Sign Out
+                        </button>
+                    </div>
+                }
+            />
         </div>
     );
 };

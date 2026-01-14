@@ -19,6 +19,7 @@ const HeroPage = () => {
     const [showProfileModal, setShowProfileModal] = useState(false);
     const [isSearchExpanded, setIsSearchExpanded] = useState(false);
     const [isValidating, setIsValidating] = useState(false);
+    const [isLoggingIn, setIsLoggingIn] = useState(false);
     const navigate = useNavigate();
     const { currentUser, login, logout } = useAuth();
 
@@ -50,12 +51,21 @@ const HeroPage = () => {
     };
 
     const handleLogin = async () => {
+        setIsLoggingIn(true);
         try {
             await login();
         } catch (error) {
             console.error("Failed to log in", error);
+            setIsLoggingIn(false);
         }
     };
+
+    // Reset logging in state when user is detected
+    useEffect(() => {
+        if (currentUser) {
+            setIsLoggingIn(false);
+        }
+    }, [currentUser]);
 
     const handleLogout = async () => {
         try {
@@ -203,10 +213,10 @@ const HeroPage = () => {
                 />
             )}
 
-            {isValidating && (
+            {(isValidating || isLoggingIn) && (
                 <div className={styles.loadingOverlay}>
                     <div className={styles.spinner}></div>
-                    <div className={styles.loadingText}>Validating Ticker...</div>
+                    <div className={styles.loadingText}>{isValidating ? 'Validating Ticker...' : 'Logging in...'}</div>
                 </div>
             )}
         </div>

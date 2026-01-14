@@ -6,7 +6,7 @@ import styles from './AddStockToPortfolioModal.module.css';
 
 // --- Sub-components (Reused/Refactored from Portfolio pages with Desktop Modal fix) ---
 
-const CustomSelect = ({ value, onChange, options, placeholder, isMobile, multiple = false }) => {
+const CustomSelect = ({ value, onChange, options, placeholder, isMobile, multiple = false, dropdownStyle }) => {
     const [isOpen, setIsOpen] = useState(false);
     const containerRef = useRef(null);
     const menuRef = useRef(null);
@@ -125,7 +125,7 @@ const CustomSelect = ({ value, onChange, options, placeholder, isMobile, multipl
             </div>
             {isOpen && createPortal(
                 <div className={styles.mobileModalOverlay} onClick={() => setIsOpen(false)}>
-                    <div className={styles.mobileModalContent} onClick={e => e.stopPropagation()}>
+                    <div className={styles.mobileModalContent} onClick={e => e.stopPropagation()} style={dropdownStyle}>
                         {menuContent}
                     </div>
                 </div>,
@@ -279,6 +279,7 @@ const AddStockToPortfolioModal = ({ isOpen, onClose, ticker, onAdd, portfolioLis
                             isMobile={isMobile}
                             multiple={true}
                             placeholder="Select Portfolios"
+                            dropdownStyle={{ maxWidth: '600px' }}
                         />
                     </div>
 

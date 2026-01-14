@@ -99,6 +99,28 @@ const MoatCard = ({ onMoatStatusChange, onIsEvaluatingChange, currency = 'USD', 
                         setEvaluator(privateData.evaluator);
                         setUserNote(privateData.userNote || ''); // Load user note
                         setHasEvaluated(true);
+                        if (privateData.comparisons && Array.isArray(privateData.comparisons)) {
+                            // Load comparisons
+                            // Note: This needs to be async but inside checkCache we can do it.
+                            // We do it after setting basic scores.
+                            const loadedComparisons = [];
+                            for (const comp of privateData.comparisons) {
+                                if (comp.ticker) {
+                                    const data = await fetchComparisonData(comp.ticker);
+                                    if (data) {
+                                        loadedComparisons.push({
+                                            ticker: comp.ticker,
+                                            color: comp.color || '#3B82F6',
+                                            data: data
+                                        });
+                                    }
+                                }
+                            }
+                            setComparisonStocks(loadedComparisons);
+                        } else {
+                            setComparisonStocks([]);
+                        }
+
                         return; // Stop here if private found
                     } else {
                         console.log("[checkCache] No private analysis found.");
@@ -297,20 +319,15 @@ const MoatCard = ({ onMoatStatusChange, onIsEvaluatingChange, currency = 'USD', 
 
     // Comparison Logic
 
-    const handleAddComparison = async () => {
-        if (!comparisonTicker) return;
+    const fetchComparisonData = async (ticker) => {
         try {
-            // Fetch history for comparison ticker
             const apiUrl = import.meta.env.VITE_API_URL || '/api';
-            const response = await fetch(`${apiUrl}/stock/history/${comparisonTicker}`);
+            const response = await fetch(`${apiUrl}/stock/history/${ticker}`);
             if (!response.ok) throw new Error('Failed to fetch');
             const historyData = await response.json();
 
             if (!historyData || historyData.length === 0) {
-                setError('No data found for this ticker');
-                setErrorTitle("Comparison Error");
-                setShowErrorModal(true);
-                return;
+                return null;
             }
 
             // Process data: Filter last 20 years and normalize
@@ -319,34 +336,71 @@ const MoatCard = ({ onMoatStatusChange, onIsEvaluatingChange, currency = 'USD', 
             const filtered = historyData.filter(item => new Date(item.date) >= twentyYearsAgo);
 
             if (filtered.length === 0) {
-                setError('Insufficient data for this ticker');
-                setErrorTitle("Comparison Error");
-                setShowErrorModal(true);
-                return;
+                return null;
             }
 
             const startPrice = filtered[0].close;
             const processedData = filtered.map(item => ({
                 date: item.date,
-                [`value_${comparisonTicker}`]: ((item.close - startPrice) / startPrice) * 100
+                [`value_${ticker}`]: ((item.close - startPrice) / startPrice) * 100
             }));
 
-            // Assign a random color
-            const colors = ['#3B82F6', '#10B981', '#EC4899', '#8B5CF6', '#F472B6'];
-            const color = colors[comparisonStocks.length % colors.length];
-
-            setComparisonStocks([...comparisonStocks, { ticker: comparisonTicker, data: processedData, color }]);
-            setComparisonTicker('');
+            return processedData;
         } catch (e) {
-            console.error("Error adding comparison stock", e);
-            setError('Error adding stock. Please check the ticker.');
-            setErrorTitle("Comparison Error");
-            setShowErrorModal(true);
+            console.error(`Error fetching data for ${ticker}`, e);
+            return null;
         }
     };
 
-    const removeComparison = (ticker) => {
-        setComparisonStocks(comparisonStocks.filter(s => s.ticker !== ticker));
+    const handleAddComparison = async () => {
+        if (!comparisonTicker) return;
+
+        // Check if already added
+        if (comparisonStocks.some(s => s.ticker === comparisonTicker)) {
+            setComparisonTicker('');
+            return;
+        }
+
+        const processedData = await fetchComparisonData(comparisonTicker);
+
+        if (!processedData) {
+            setError('No data found or insufficient history for this ticker');
+            setErrorTitle("Comparison Error");
+            setShowErrorModal(true);
+            return;
+        }
+
+        // Assign a random color
+        const colors = ['#3B82F6', '#10B981', '#EC4899', '#8B5CF6', '#F472B6'];
+        const color = colors[comparisonStocks.length % colors.length];
+
+        const newDetailedStock = { ticker: comparisonTicker, data: processedData, color };
+        const newComparisonStocks = [...comparisonStocks, newDetailedStock];
+
+        setComparisonStocks(newComparisonStocks);
+        setComparisonTicker('');
+
+        // Persist to Firestore
+        if (currentUser && stockData?.overview?.symbol) {
+            // Save only ticker and color
+            const comparisonsToSave = newComparisonStocks.map(s => ({ ticker: s.ticker, color: s.color }));
+            await savePrivateMoatAnalysis(currentUser.uid, stockData.overview.symbol, {
+                comparisons: comparisonsToSave
+            });
+        }
+    };
+
+    const removeComparison = async (ticker) => {
+        const newComparisonStocks = comparisonStocks.filter(s => s.ticker !== ticker);
+        setComparisonStocks(newComparisonStocks);
+
+        // Persist Removal
+        if (currentUser && stockData?.overview?.symbol) {
+            const comparisonsToSave = newComparisonStocks.map(s => ({ ticker: s.ticker, color: s.color }));
+            await savePrivateMoatAnalysis(currentUser.uid, stockData.overview.symbol, {
+                comparisons: comparisonsToSave
+            });
+        }
     };
 
     // Merge chart data
@@ -514,7 +568,7 @@ const MoatCard = ({ onMoatStatusChange, onIsEvaluatingChange, currency = 'USD', 
 
                                 <div className={styles.chartWrapper}>
                                     <ResponsiveContainer width="100%" height={chartHeight}>
-                                        <AreaChart data={mergedChartData} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
+                                        <AreaChart data={mergedChartData} margin={{ top: 10, right: 0, left: 10, bottom: 0 }}>
                                             <defs>
                                                 <linearGradient id="colorPriceMoat" x1="0" y1="0" x2="0" y2="1">
                                                     <stop offset="5%" stopColor="#F59E0B" stopOpacity={0.8} />
@@ -531,9 +585,9 @@ const MoatCard = ({ onMoatStatusChange, onIsEvaluatingChange, currency = 'USD', 
                                             />
                                             <YAxis
                                                 stroke={chartColors.text}
-                                                tick={{ fontSize: 10, fill: chartColors.text, angle: -60 }}
+                                                tick={{ fontSize: 10, fill: chartColors.text, angle: -90, textAnchor: 'middle', dy: -4 }}
                                                 // tickFormatter={(val) => `${val.toFixed(0)}%`}
-                                                width={50}
+                                                width={45}
                                                 tickFormatter={(val) => {
                                                     // Ensure val is treated as a percentage (0-100) and display divided by 100
                                                     return `${(val / 100).toFixed(1)}%`;

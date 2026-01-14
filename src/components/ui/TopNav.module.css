@@ -186,7 +186,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: transparent;
+    background: transparent !important;
     color: var(--text-secondary);
     cursor: pointer;
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
@@ -263,7 +263,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: transparent;
+    background: transparent !important;
     padding: 0;
     color: var(--text-secondary);
     cursor: pointer;
@@ -292,11 +292,11 @@
 }
 
 .starIcon {
-    color: #F59E0B;
+    color: inherit;
 }
 
 .userButton {
-    background: transparent;
+    background: transparent !important;
     border: none;
     cursor: pointer;
     padding: 0;
@@ -363,11 +363,32 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: transparent;
-    border: none;
-    color: var(--text-primary);
+    background: transparent !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.4);
+    border-left: 1px solid rgba(255, 255, 255, 0.4);
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    color: var(--text-secondary);
     cursor: pointer;
-    padding: 0.5rem;
+    padding: 0;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(1px) saturate(150%) brightness(1);
+    -webkit-backdrop-filter: blur(1px) saturate(150%) brightness(1);
+    box-shadow:
+        0 5px 10px rgba(0, 0, 0, 0.2),
+        inset 5px 3.5px 5px rgba(255, 255, 255, 0.2),
+        inset -2px -2px 5px rgba(0, 0, 0, 0.2);
+    height: 2.8rem;
+    width: 2.8rem;
+}
+
+.menuButton:hover {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.144), rgba(255, 255, 255, 0.1));
+    transform: scale(1.1);
+    border-radius: 18px;
+    box-shadow: 0 6px 12px rgba(96, 165, 250, 0.5), inset 0 2px 4px rgba(96, 165, 250, 0.5);
+    border: none;
 }
 
 @media (min-width: 768px) {
@@ -395,6 +416,17 @@
 .mobileMenu>* {
     display: flex !important;
     flex-shrink: 0;
+    background: rgba(20, 20, 20, 0.7) !important;
+    backdrop-filter: blur(12px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(12px) saturate(180%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Light mode override for mobile menu items */
+[data-theme="light"] .mobileMenu>* {
+    background: rgba(255, 255, 255, 0.8) !important;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    color: var(--text-primary) !important;
 }
 
 @keyframes slideDown {
@@ -407,4 +439,53 @@
         opacity: 1;
         transform: scaleY(1);
     }
+}
+
+/* Modal Styles */
+.modalFooter {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    width: 100%;
+    margin-top: 1rem;
+}
+
+.modalBtn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.4);
+    border-left: 1px solid rgba(255, 255, 255, 0.4);
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 0.8rem;
+    color: var(--text-primary);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow:
+        0 5px 10px rgba(0, 0, 0, 0.2),
+        inset 5px 3.5px 5px rgba(255, 255, 255, 0.2),
+        inset -2px -2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.modalBtn:hover {
+    transform: scale(1.02);
+    border-radius: 18px;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0));
+}
+
+.modalDangerBtn {
+    background: rgba(239, 68, 68, 0.1) !important;
+    border: 1px solid rgba(239, 68, 68, 0.4) !important;
+    color: #EF4444 !important;
+    box-shadow: none;
+}
+
+.modalDangerBtn:hover {
+    background: rgba(239, 68, 68, 0.2) !important;
+    box-shadow: 0 0 15px rgba(239, 68, 68, 0.4) !important;
+    transform: scale(1.02);
 }
